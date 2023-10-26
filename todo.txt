@@ -1,0 +1,30 @@
+try splits? 
+
+handle remnants 
+
+think about sort order (red black tree)
+
+migrate github 
+
+bulk resolve
+
+handle token change
+
+private listing? 
+
+
+/
+/
+/ DONE
+/
+/  
+
+bulk remove 
+
+handle bulk add 
+
+remove listing 
+
+timeout listing 
+
+make sure we know which has algorithm for the commit vote step (keccak256)
