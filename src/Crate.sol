@@ -139,6 +139,7 @@ contract Crate is Ownable {
     function resolveListing(bytes32 _listingHash) public {
         Record memory record = records[_listingHash];
         require(abi.encode(record).length > 0, "Record does not exist");
+        require(record.allowListed == false, "Record already allow listed");
         require(record.challengeId == 0, "Challenge will resolve listing");
         require(record.applicationExpiry > 0 && block.timestamp > record.applicationExpiry, "Record has no Expiry or has not expired");
         
@@ -230,6 +231,7 @@ contract Crate is Ownable {
                     record.deposit = _amount;
                     record.data = _data;
                     record.applicationExpiry = expiry;
+                    record.exists = true;
 
                     if (allowListed) {
                         emit _ApplicationAllowlisted(_hash);
@@ -279,8 +281,42 @@ contract Crate is Ownable {
         }         
     }
 
+    /*
+     * @dev Batch allow list applications if application time has expired
+     * @notice will skip (not revert) if invalid 
+     * @param _listingHashes array of keccak256 hashes of record identifier
+     */
+    function batchResolveListing(bytes32[] memory _listingHashes) public {  
+        uint length = _listingHashes.length;      
+        uint currentTime = block.timestamp;
+
+        unchecked {
+            for (uint8 i=0; i < length;) {   
+                bytes32 _hash = _listingHashes[i];
+
+                 if (
+                    records[_hash].exists == true &&
+                    records[_hash].allowListed == false && 
+                    records[_hash].challengeId == 0 && 
+                    records[_hash].applicationExpiry > 0 && 
+                    currentTime > records[_hash].applicationExpiry
+                ) {
+                    records[_hash].allowListed = true;
+                    emit _ApplicationAllowlisted(_hash);
+                }
+            } 
+        } 
+    }
+
     function encode(bytes32 _hash) public {
-        bool res =  challengeResolved(_hash);
+        uint time = block.timestamp;
+         if (time> records[_hash].applicationExpiry) {
+
+         }
+        
+        // if (time > records[_hash].applicationExpiry) {
+
+        //  }
     }
 
     /*

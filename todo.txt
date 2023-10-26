@@ -4,13 +4,11 @@ handle remnants
 
 think about sort order (red black tree)
 
-migrate github 
-
-bulk resolve
-
 handle token change
 
 private listing? 
+
+rename listing to crate
 
 
 /
@@ -28,3 +26,7 @@ remove listing
 timeout listing 
 
 make sure we know which has algorithm for the commit vote step (keccak256)
+
+migrate github 
+
+bulk resolve
