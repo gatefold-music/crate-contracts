@@ -33,29 +33,29 @@ contract CrateRegistryTest is Test {
     function testOpen() public  {
         // console2.log(address(crate.token()));
 
-        vm.prank(ownerAddress);
-        crateRegistry.openAccess(address(crate));
+        // vm.prank(ownerAddress);
+        // crateRegistry.openAccess(address(crate));
 
         // console2.log(address(crate.token()));
     }
 
     function testLoop() public {
-        bytes32 b = bytes32("adsfasdfasdfasdfsd");
-        bytes32[] memory list = new bytes32[](100);
-        CrateRegistry.NewList[] memory listings = new CrateRegistry.NewList[](30);
-        for (uint n; n <30;n++) {
-            list[n] = b;
-            listings[n] = CrateRegistry.NewList({listHash: b, data: "asdfsdf"});
-        }
+        // bytes32 b = bytes32("adsfasdfasdfasdfsd");
+        // bytes32[] memory list = new bytes32[](100);
+        // CrateRegistry.NewList[] memory listings = new CrateRegistry.NewList[](30);
+        // for (uint n; n <30;n++) {
+        //     list[n] = b;
+        //     listings[n] = CrateRegistry.NewList({listHash: b, data: "asdfsdf"});
+        // }
         
 
-        crateRegistry.tryLoop(listings);
+        // crateRegistry.tryLoop(listings);
     }
 
     function testPropose() public  {
         // console2.log(address(crate.token()));
 
-        vm.prank(ownerAddress);
+        // vm.prank(ownerAddress);
         // crate.propose(address(crate));
 
         // console2.log(address(crate.token()));

@@ -15,6 +15,8 @@ contract CrateTest is Test {
     Crate public crate;
     address public ownerAddress = address(0x12345);
     address public spenderAddress = address(0x69420);
+        event RecordAdded(bytes32 indexed recordHash);
+
 
     function setUp() public {
         crateRegistry = new CrateRegistry();
@@ -48,6 +50,9 @@ contract CrateTest is Test {
 
     function testSomethingAgain() public  {
         bytes32 a = bytes32("adsfasdfasdfasdfsd");
+
+        vm.expectEmit(false, false, false, true);
+        emit RecordAdded(a);
 
         crate.encode(a);
     }

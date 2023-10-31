@@ -4,12 +4,13 @@ handle remnants
 
 think about sort order (red black tree)
 
-handle token change
-
 private listing? 
 
 rename listing to crate
 
+find out if require in loop reverts all emitted events
+
+lock playlist
 
 /
 /
@@ -30,3 +31,9 @@ make sure we know which has algorithm for the commit vote step (keccak256)
 migrate github 
 
 bulk resolve
+
+resolve challenge is wrong! fix it
+
+fix batch remove payout 
+
+handle token change
