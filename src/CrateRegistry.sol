@@ -26,7 +26,7 @@ contract CrateRegistry {
         return address(token);
     }      
 
-    function tryLoop(NewList[] memory hashes) public returns (uint256 sum) {
+    function tryLoop(NewList[] memory hashes) public pure returns (uint256 sum) {
         uint length = hashes.length;
         unchecked {
             for (uint256 n =0; n < length;) {

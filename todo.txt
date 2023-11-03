@@ -1,6 +1,6 @@
 try splits? 
 
-handle remnants 
+handle remnants  (account for number of voters)
 
 think about sort order (red black tree)
 
@@ -8,9 +8,13 @@ private listing?
 
 rename listing to crate
 
-find out if require in loop reverts all emitted events
+length of playlist 
 
-lock playlist
+ensure no reentrancy on poll withdrawals for winers 
+
+ensure that poll reward pool is being decremented when someone withdraws their winnings
+
+
 
 /
 /
@@ -37,3 +41,10 @@ resolve challenge is wrong! fix it
 fix batch remove payout 
 
 handle token change
+
+find out if require in loop reverts all emitted events (it does not)
+
+lock playlist (lock propose and challenge but dont lock current polls)
+
+fix poll to not create a whole new object in create poll
+

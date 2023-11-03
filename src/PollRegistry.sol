@@ -36,14 +36,15 @@ contract PollRegistry is ReentrancyGuard {
         uint revealEndDate;     /// expiration date of reveal period for poll
         uint voteQuorum;	    /// number of votes required for a proposal to pass
         uint votesFor;		    /// tally of votes supporting proposal
-        // uint votersFor;
+        uint votersFor;
         uint votesAgainst;      /// tally of votes countering proposal
-        // uint votersAgainst;
+        uint votersAgainst;
         address tokenAddress;   /// token address for poll
         bool passed;            // did poll pass
         bool resolved;          // has poll been resolved
         uint totalDeposits;     // total number of staked tokens for this poll
         uint rewardPool;        // total number of tokens to be distributed to winning voters
+        uint winnerWithdrawals;  // total number of withdrawals for winners 
     }
 
     /*
@@ -108,21 +109,12 @@ contract PollRegistry is ReentrancyGuard {
         uint commitEndDate = block.timestamp + COMMIT_DURATION;
         uint revealEndDate = commitEndDate + REVEAL_DURATION;
 
-        polls[newPollId] = Poll({
-            exists: true,
-            voteQuorum: VOTE_QUORUM,
-            commitEndDate: commitEndDate,
-            revealEndDate: revealEndDate,
-            votesFor: 0,
-            votesAgainst: 0, 
-            // votersFor: 0, // dont think this is needed
-            // votersAgainst: 0, // dont think this is needed 
-            tokenAddress: _tokenAddress,
-            passed: false, 
-            resolved: false,
-            totalDeposits: 0,
-            rewardPool: 0
-        });
+        Poll storage poll = polls[newPollId];
+        poll.exists = true;
+        poll.voteQuorum = VOTE_QUORUM;
+        poll.tokenAddress = _tokenAddress;
+        poll.commitEndDate = commitEndDate;
+        poll.revealEndDate = revealEndDate;
 
         emit PollCreated(commitEndDate, revealEndDate, newPollId, msg.sender);
 
@@ -176,10 +168,10 @@ contract PollRegistry is ReentrancyGuard {
 
         if(_vote) {
             poll.votesFor += _amount;
-            // polls[_pollId].votersFor += 1;
+            polls[_pollId].votersFor += 1;
         } else {
             poll.votesAgainst += _amount;
-            // polls[_pollId].votersAgainst += 1;
+            polls[_pollId].votersAgainst += 1;
         }
 
         reveals[_pollId][msg.sender] = true;
@@ -192,7 +184,7 @@ contract PollRegistry is ReentrancyGuard {
      * @dev Close poll and calculate reward pool
      * @param _pollId id of poll to resolve
      */
-    function resolvePoll(uint _pollId) public {
+    function resolvePoll(uint _pollId) public view {
         Poll memory poll = polls[_pollId];
         require(block.timestamp > poll.revealEndDate, "Poll has not ended");
 
@@ -210,6 +202,8 @@ contract PollRegistry is ReentrancyGuard {
      */
     function withdrawBalance(uint _pollId) public {
         Poll memory poll = polls[_pollId];
+
+        // check if there is anything to withdraw for this user! no reentrancy u fukcin fuck !!! 
         require(poll.resolved == true, "Poll has not ended");
         require(reveals[_pollId][msg.sender] == true, "User did not reveal vote");
         require(votes[_pollId][msg.sender] == poll.passed, "User did not vote for winner party");
@@ -221,11 +215,21 @@ contract PollRegistry is ReentrancyGuard {
 
         uint stakedTotal = poll.passed ? poll.votesFor : poll.votesAgainst;
 
+        uint voterTotal = poll.passed ? poll.votersFor : poll.votersAgainst;
+
+        uint newWinnerWithdrawalCount = poll.winnerWithdrawals += 1;
+
         uint reward = Reward.rewardPoolShare(poll.rewardPool, amountToSend, stakedTotal);
 
         ERC20(polls[_pollId].tokenAddress).transferFrom(address(this), msg.sender, amountToSend + reward);
 
-        // cheeck for all withdrawers and transfer remnants? 
+
+        // cheeck for all withdrawers and transfer remnants?     
+        if (voterTotal == newWinnerWithdrawalCount && poll.rewardPool > 0) {
+            // ERC20(polls[_pollId].tokenAddress).transferFrom(address(this), this.owner ?, amountToSend + reward);
+        } 
+
+  
     }
 
 

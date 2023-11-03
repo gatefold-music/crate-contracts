@@ -7,7 +7,6 @@ import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 
 contract Crate is Ownable { 
-
     string public name;
     uint public deposit;
     uint public appDuration;
@@ -16,6 +15,7 @@ contract Crate is Ownable {
     ERC20 public token;
     PollRegistry public pollRegistry;
     uint8 public constant BATCH_MAX = 51; 
+    bool public finalized;
     
     /*
      *
@@ -82,6 +82,7 @@ contract Crate is Ownable {
      * @param _data metadata string or uri 
      */
     function propose(bytes32 _recordHash, uint _amount, string memory _data) public {
+        require(!finalized, "This list has been finalized");
         require(token.balanceOf(msg.sender) >= _amount, "Insufficient token balance");
         require(!isAllowlisted(_recordHash), "Record is already on allow list.");
         require(!appWasMade(_recordHash), "Record is already in apply stage.");
@@ -115,6 +116,7 @@ contract Crate is Ownable {
      * @param _amount the amount of tokens to stake for this listing (must be at least the staked amount for listing)
      */
     function challenge(bytes32 _listingHash, uint _amount) external returns (uint challengeID) {
+        require(!finalized, "This list has been finalized");
         Record storage record = records[_listingHash];
         require(ERC20(record.tokenAddress).balanceOf(msg.sender) >= _amount, "Insufficient token balance");
         require(_amount >= record.deposit, "Not enough stake for application.");
@@ -178,7 +180,6 @@ contract Crate is Ownable {
 
 
         address recordOwner = record.owner;
-        uint ownerDeposit = record.deposit;
         uint challengeId = record.challengeId;
         uint challengeDeposit = record.challengeDeposit;
         uint rewards = 0;
@@ -333,6 +334,17 @@ contract Crate is Ownable {
      * ADMIN
      *
      */ 
+    
+    
+    /*
+     * @dev This locks the list fooooreeeeeveer
+     * @notice any pending challenges (polls) can still be resolved even after locking
+     * @notice this action cannot be undone
+     * @param _token erc20 token address to use for new proposals 
+     */
+    function seal() public onlyOwner {
+        finalized = true;
+    }
     
     /*
      * @dev Updates the Token 
