@@ -14,7 +14,21 @@ ensure no reentrancy on poll withdrawals for winers
 
 ensure that poll reward pool is being decremented when someone withdraws their winnings
 
+change amounts to counters ? 
 
+do we need an admin feature? if so, we could probably use a mapping instead of just setting a function 
+
+change allowlisted to listed? 
+
+change deposit to minDeposit
+
+change finalized to closed 
+
+dont think we need appWasMade
+
+emit app and list duration expiry times
+
+handle batch remove refund amount
 
 /
 /
