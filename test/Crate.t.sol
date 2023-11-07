@@ -39,23 +39,29 @@ contract CrateTest is Test {
     }
 
     function testSomething() public  {
-        bytes32 a = bytes32("adsfasdfasdfasdfsd");
+        bytes32 a = bytes32("a super secret entry");
+        string memory b = "some crazy one word password";
 
-        vm.prank(spenderAddress);
-        crate.propose(a, 10, "ipfs://c");
+        keccak256(abi.encodePacked(a, b));
+
+                // require(keccak256(abi.encodePacked(_vote, _salt)) == voteHashes[_pollId][msg.sender]);
 
 
-        crate.encode(a);
+        // vm.prank(spenderAddress);
+        // crate.propose(a, 10, "ipfs://c");
+
+
+        // crate.encode(a);
     }
 
-    function testSomethingAgain() public  {
-        bytes32 a = bytes32("adsfasdfasdfasdfsd");
+    // function testSomethingAgain() public  {
+    //     bytes32 a = bytes32("adsfasdfasdfasdfsd");
 
-        vm.expectEmit(false, false, false, true);
-        emit RecordAdded(a);
+    //     // vm.expectEmit(false, false, false, true);
+    //     // emit RecordAdded(a);
 
-        crate.encode(a);
-    }
+    //     // crate.encode(a);
+    // }
 
 
     function testBatchPropose() public {

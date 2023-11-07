@@ -200,7 +200,7 @@ contract PollRegistry is ReentrancyGuard {
      * @dev Withdraw user balance once poll has completed
      * @param _pollId id of poll to withdraw balance from
      */
-    function withdrawBalance(uint _pollId) public {
+    function withdrawBalance(uint _pollId) public nonReentrant {
         Poll memory poll = polls[_pollId];
 
         // check if there is anything to withdraw for this user! no reentrancy u fukcin fuck !!! 

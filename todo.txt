@@ -1,16 +1,8 @@
-try splits? 
-
-handle remnants  (account for number of voters)
-
 think about sort order (red black tree)
 
 private listing? 
 
-rename listing to crate
-
 length of playlist 
-
-ensure no reentrancy on poll withdrawals for winers 
 
 ensure that poll reward pool is being decremented when someone withdraws their winnings
 
@@ -18,17 +10,12 @@ change amounts to counters ?
 
 do we need an admin feature? if so, we could probably use a mapping instead of just setting a function 
 
-change allowlisted to listed? 
-
-change deposit to minDeposit
-
-change finalized to closed 
-
-dont think we need appWasMade
-
 emit app and list duration expiry times
 
 handle batch remove refund amount
+
+decide who to send remnants to 
+break out into its own function
 
 /
 /
@@ -61,4 +48,21 @@ find out if require in loop reverts all emitted events (it does not)
 lock playlist (lock propose and challenge but dont lock current polls)
 
 fix poll to not create a whole new object in create poll
+
+change finalized to closed 
+
+rename listing to crate
+
+dont think we need appWasMade
+
+change deposit to minDeposit
+
+change allowlisted to listed? 
+
+handle remnants  (account for number of voters)
+
+ensure no reentrancy on poll withdrawals for winers 
+
+enable payout address (splits module) for challenge
+
 
