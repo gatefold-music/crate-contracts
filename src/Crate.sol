@@ -16,6 +16,8 @@ contract Crate is Ownable {
     PollRegistry public pollRegistry;
     uint8 public constant BATCH_MAX = 51; 
     bool public closed;
+    uint256 public listLength; 
+    uint256 public maxListLength;
     
     /*
      *
@@ -67,6 +69,8 @@ contract Crate is Ownable {
         minDeposit = _minDeposit;
         appDuration = 0; // no application period
         listDuration = 0; // no listing period
+        listLength = 0;
+        maxListLength = type(uint256).max;
     }
 
     /*
@@ -86,11 +90,14 @@ contract Crate is Ownable {
         require(!closed, "This crate has been closed");
         require(token.balanceOf(msg.sender) >= _amount, "Insufficient token balance");
         require(!records[_recordHash].exists, "Record already exists");
-        // require(!isAllowlisted(_recordHash), "Record is already listed");
-        // require(!appWasMade(_recordHash), "Record is already in apply stage.");
         require(_amount >= minDeposit, "Not enough stake for application.");
 
         bool listed = appDuration == 0 ? true : false;
+
+        if (listed) {   
+            require(listLength + 1 <= maxListLength, "Exceeds max length"); 
+            listLength += 1;
+        }
 
         Record storage record = records[_recordHash];
         record.listed = listed;
@@ -149,6 +156,7 @@ contract Crate is Ownable {
         require(!record.listed, "Record already allow listed");
         require(record.challengeId == 0, "Challenge will resolve listing");
         require(record.applicationExpiry > 0 && block.timestamp > record.applicationExpiry, "Record has no Expiry or has not expired");
+        require(listLength + 1 <= maxListLength, "Exceeds max length"); 
         
         records[_recordHash].listed = true;
         emit RecordAdded(_recordHash);
@@ -166,12 +174,15 @@ contract Crate is Ownable {
         
         require(ERC20(record.tokenAddress).transferFrom(address(this),record.owner, record.deposit), "Tokens failed to transfer.");
 
+        listLength -= 1;
+
         delete records[_recordHash];
         emit RecordRemoved(_recordHash);
     }
 
     /*
      * @dev Resolve challenge once voting has completed
+     * @notice If list length has been reached, winning address can still call this but adding entry to list with be skipped
      * @param _recordHash keccak256 hash of record identifier
      */
     function resolveChallenge(bytes32 _recordHash) public {
@@ -179,7 +190,8 @@ contract Crate is Ownable {
         require(record.challengeId > 0, "No challenge for record");
         require(record.resolved == false, "Challenge has already been resolved");
         require(pollRegistry.hasResolved(record.challengeId) == true, "Poll has not ended");
-
+        address winningOwner = pollRegistry.hasPassed(record.challengeId) ? record.owner : record.challenger;
+        require(listLength + 1 <= maxListLength || msg.sender == winningOwner, "Max length reached or not authorized to skip list addition");
 
         address recordOwner = record.owner;
         uint challengeId = record.challengeId;
@@ -204,6 +216,7 @@ contract Crate is Ownable {
             winner = record.challengerPayoutAddress;
             rewards = record.deposit;
             if(record.listed){ 
+                listLength -= 1;
                 emit RecordRemoved(_recordHash);
             } else {
                 emit ApplicationRemoved(_recordHash);
@@ -229,8 +242,13 @@ contract Crate is Ownable {
         require(token.balanceOf(msg.sender) >= (_amount * length), "Insufficient token balance");
         require(_amount >= minDeposit, "Not enough stake for application.");
 
-        uint8 addedCount = 0;
         bool listed = appDuration == 0 ? true : false;
+        if (listed) {   
+            require(listLength + length <= maxListLength, "Exceeds max length"); 
+            listLength += length;
+        }
+
+        uint8 addedCount = 0;
         uint expiry = block.timestamp + appDuration;
         address tokenAddress = address(token);
 
@@ -287,6 +305,7 @@ contract Crate is Ownable {
                     (record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry)) // caller is owner or list time has expired
                 ) {
                     require(ERC20(record.tokenAddress).transferFrom(address(this),record.owner, record.deposit), "Tokens failed to transfer.");
+                    listLength -= 1;
                     delete records[_hash];
                     emit RecordRemoved(_hash);
                 }
@@ -305,6 +324,7 @@ contract Crate is Ownable {
      */
     function batchResolveApplication(bytes32[] memory _recordHashes) public {  
         uint length = _recordHashes.length;      
+        require(listLength + length <= maxListLength, "Exceeds max length"); 
         uint currentTime = block.timestamp;
 
         unchecked {
@@ -326,10 +346,7 @@ contract Crate is Ownable {
     }
 
     function encode(bytes32 _hash) public {
-        for (uint i = 0; i < 10 ;i++) {
-            require(i < 5, "REJECTED");
-            emit RecordAdded(_hash);
-        }
+
     }
 
     /*

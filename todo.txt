@@ -4,10 +4,6 @@ private listing?
 
 length of playlist 
 
-ensure that poll reward pool is being decremented when someone withdraws their winnings
-
-change amounts to counters ? 
-
 do we need an admin feature? if so, we could probably use a mapping instead of just setting a function 
 
 emit app and list duration expiry times
@@ -16,6 +12,10 @@ handle batch remove refund amount
 
 decide who to send remnants to 
 break out into its own function
+
+do i have to set the max amount of uin256? or does it default to 0 ? 
+
+handle remove listing decrement listLength !
 
 /
 /
@@ -64,5 +64,8 @@ handle remnants  (account for number of voters)
 ensure no reentrancy on poll withdrawals for winers 
 
 enable payout address (splits module) for challenge
+
+ensure that poll reward pool is being decremented when someone withdraws their winnings
+
 
 
