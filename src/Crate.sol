@@ -29,7 +29,7 @@ contract Crate is Ownable {
     struct Record {
         uint applicationExpiry; // Expiration date of apply stage
         bool listed;       // Indicates registry status
-        address owner;          // Owner of recrod
+        address owner;          // Owner of record
         uint challengeId;       // the challenge id of the current challenge
         uint deposit;           // Number of tokens staked for this record
         string data;            // id or ipfs hash. 
@@ -134,10 +134,12 @@ contract Crate is Ownable {
         require(record.exists, "Record does not exist."); 
         require(record.challengeId == 0, "Record has already been challenged.");
 
-        uint newPollId = pollRegistry.createPoll(record.tokenAddress);
+        address payoutAddress = payoutAddress != address(0) ? payoutAddress : msg.sender;
+
+        uint newPollId = pollRegistry.createPoll(record.tokenAddress, record.owner, payoutAddress);
         record.challengeId = newPollId;
         record.challenger = msg.sender;
-        record.challengerPayoutAddress = payoutAddress != address(0) ? payoutAddress : msg.sender;
+        record.challengerPayoutAddress = payoutAddress;
         record.challengeDeposit += _amount;
 
         require(ERC20(record.tokenAddress).transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");

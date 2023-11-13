@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.21;
 
-import "openzeppelin-contracts/contracts/utils/Counters.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./Reward.sol";
@@ -12,9 +11,7 @@ import "./Reward.sol";
  */
 
 contract PollRegistry is ReentrancyGuard {
-    using Counters for Counters.Counter;
-
-    Counters.Counter private pollId;
+    uint private pollId;
 
     /*
      *
@@ -44,7 +41,12 @@ contract PollRegistry is ReentrancyGuard {
         bool resolved;          // has poll been resolved
         uint totalDeposits;     // total number of staked tokens for this poll
         uint rewardPool;        // total number of tokens to be distributed to winning voters
-        uint winnerWithdrawals;  // total number of withdrawals for winners 
+        uint winnerWithdrawalCount;  // total number of withdrawals for winners 
+        address winnerAddress;
+        uint withdrawnRewardAmount;
+        address proposerAddress;
+        address challengerAddress;
+        
     }
 
     /*
@@ -54,7 +56,7 @@ contract PollRegistry is ReentrancyGuard {
      */
     mapping(uint => mapping(address => bool)) public commits;  // pollId > wallet address > did commit a vote
     mapping(uint => mapping(address => bool)) public reveals;  // pollId > wallet address > did reveal a vote
-    mapping(uint => Poll) public polls;                        // pollId > Poll
+    mapping(uint => Poll) private polls;                        // pollId > Poll
     mapping(uint => mapping(address => uint)) public balances; // pollId > wallet address > balance
     mapping(uint => mapping(address => bool)) public votes;    // pollId > voter address > vote (for or against)
     mapping(uint => mapping(address => bytes32)) public voteHashes; // pollId > voter address > hashed vote (pre reveal)
@@ -89,7 +91,7 @@ contract PollRegistry is ReentrancyGuard {
      *
      */
     constructor() {
-        pollId.increment(); // start poll id at 1
+        pollId += 1; // start poll id at 1
     }
 
     /*
@@ -102,9 +104,9 @@ contract PollRegistry is ReentrancyGuard {
       * @dev Initializes a new poll instance
       * @param _tokenAddress address of token needed to stake and place vote
       */
-    function createPoll(address _tokenAddress) public returns (uint newPollId) {
-        newPollId = pollId.current();
-        pollId.increment();
+    function createPoll(address _tokenAddress, address _proposerAddress, address _challengerAddress) public returns (uint newPollId) {
+        newPollId = pollId;
+        pollId += 1;
 
         uint commitEndDate = block.timestamp + COMMIT_DURATION;
         uint revealEndDate = commitEndDate + REVEAL_DURATION;
@@ -191,6 +193,7 @@ contract PollRegistry is ReentrancyGuard {
         bool passed = hasPassed(_pollId);
         uint winnerPool = passed ? poll.votesFor : poll.votesAgainst;
 
+        poll.winnerAddress = passed ? poll.proposerAddress : poll.challengerAddress;
         poll.rewardPool = poll.totalDeposits - winnerPool;
         poll.resolved = true;        
         poll.passed = passed;
@@ -203,7 +206,6 @@ contract PollRegistry is ReentrancyGuard {
     function withdrawBalance(uint _pollId) public nonReentrant {
         Poll memory poll = polls[_pollId];
 
-        // check if there is anything to withdraw for this user! no reentrancy u fukcin fuck !!! 
         require(poll.resolved == true, "Poll has not ended");
         require(reveals[_pollId][msg.sender] == true, "User did not reveal vote");
         require(votes[_pollId][msg.sender] == poll.passed, "User did not vote for winner party");
@@ -217,20 +219,22 @@ contract PollRegistry is ReentrancyGuard {
 
         uint voterTotal = poll.passed ? poll.votersFor : poll.votersAgainst;
 
-        uint newWinnerWithdrawalCount = poll.winnerWithdrawals += 1;
+        poll.winnerWithdrawalCount += 1;
 
         uint reward = Reward.rewardPoolShare(poll.rewardPool, amountToSend, stakedTotal);
 
+        poll.withdrawnRewardAmount += reward;
+
         ERC20(polls[_pollId].tokenAddress).transferFrom(address(this), msg.sender, amountToSend + reward);
 
+        uint remnants = poll.rewardPool - poll.withdrawnRewardAmount;
 
-        // cheeck for all withdrawers and transfer remnants?     
-        if (voterTotal == newWinnerWithdrawalCount && poll.rewardPool > 0) {
-            // ERC20(polls[_pollId].tokenAddress).transferFrom(address(this), this.owner ?, amountToSend + reward);
+        // if everyone has withdrawn, send remnants to poll winner  
+        if (voterTotal == poll.winnerWithdrawalCount && remnants > 0) {
+            ERC20(polls[_pollId].tokenAddress).transferFrom(address(this), poll.winnerAddress, remnants);
         } 
-
-  
     }
+
 
 
     /*

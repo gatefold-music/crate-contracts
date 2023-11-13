@@ -8,10 +8,6 @@ emit app and list duration expiry times
 
 handle batch remove refund amount
 
-decide who to send remnants to 
-break out into its own function
-
-
 
 /
 /
@@ -70,4 +66,7 @@ handle length of playlist
 set the max list amount of uin256? SHOULD WE set to zero if we dont care about list length? (idk because there will always actually be a length)
 
 update max list length
+
+decide who to send remnants to (the proposer or challenger)
+break out into its own function. <<<< didnt do this. Its instead being paid out when the last user withdraws.
 
