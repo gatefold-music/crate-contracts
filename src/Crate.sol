@@ -4,6 +4,8 @@ pragma solidity ^0.8.21;
 import {PollRegistry} from "./PollRegistry.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import { console2} from "forge-std/Test.sol";
+
 
 
 contract Crate is Ownable { 
@@ -346,7 +348,10 @@ contract Crate is Ownable {
     }
 
     function encode(bytes32 _hash) public {
+        // uint256 x = type(uint256).max;
 
+        uint256 r;
+        console2.log(r);
     }
 
     /*
@@ -364,6 +369,11 @@ contract Crate is Ownable {
      */
     function close() public onlyOwner {
         closed = true;
+    }
+
+    function updateMaxLength(uint256 _newListLength) public onlyOwner {
+        require(_newListLength >= listLength, "Max length can not be less than current list length");
+        maxListLength = _newListLength;
     }
     
     /*
