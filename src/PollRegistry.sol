@@ -117,6 +117,8 @@ contract PollRegistry is ReentrancyGuard {
         poll.tokenAddress = _tokenAddress;
         poll.commitEndDate = commitEndDate;
         poll.revealEndDate = revealEndDate;
+        poll.proposerAddress = _proposerAddress;
+        poll.challengerAddress = _challengerAddress;
 
         emit PollCreated(commitEndDate, revealEndDate, newPollId, msg.sender);
 

@@ -126,7 +126,7 @@ contract Crate is Ownable {
      * @param _recordHash keccak256 hash of record identifier
      * @param _amount the amount of tokens to stake for this record (must be at least the staked amount for record)
      */
-    function challenge(bytes32 _recordHash, uint _amount, address payoutAddress) external returns (uint challengeID) {
+    function challenge(bytes32 _recordHash, uint _amount, address _payoutAddress) external returns (uint challengeID) {
         require(!closed, "This crate has been closed");
         Record storage record = records[_recordHash];
         require(ERC20(record.tokenAddress).balanceOf(msg.sender) >= _amount, "Insufficient token balance");
@@ -134,7 +134,7 @@ contract Crate is Ownable {
         require(record.exists, "Record does not exist."); 
         require(record.challengeId == 0, "Record has already been challenged.");
 
-        address payoutAddress = payoutAddress != address(0) ? payoutAddress : msg.sender;
+        address payoutAddress = _payoutAddress != address(0) ? _payoutAddress : msg.sender;
 
         uint newPollId = pollRegistry.createPoll(record.tokenAddress, record.owner, payoutAddress);
         record.challengeId = newPollId;
@@ -176,7 +176,10 @@ contract Crate is Ownable {
         require(record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true), "Record is in challenged state");
         require(record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry ), "Only record owner or successful challenge can remove record from list");
         
-        require(ERC20(record.tokenAddress).transferFrom(address(this),record.owner, record.deposit), "Tokens failed to transfer.");
+        /**
+        THIS MIGHT BE WRONG!! if this record has been challenged then payout should be different. 
+         */
+        require(ERC20(record.tokenAddress).transferFrom(address(this), record.owner, record.deposit), "Tokens failed to transfer.");
 
         listLength -= 1;
 
@@ -297,7 +300,6 @@ contract Crate is Ownable {
         require(length > 0, "Hash list must have at least one entry");
         require(length < BATCH_MAX,  "Hash list is too long");
 
-        // uint refundAmount = 0;
         unchecked {
             for (uint8 i=0; i < length;) {     
                 bytes32 _hash = _recordHashes[i];
@@ -313,12 +315,9 @@ contract Crate is Ownable {
                     delete records[_hash];
                     emit RecordRemoved(_hash);
                 }
+                i++;
             }
-        }
-
-        // if (refundAmount > 0) {
-        //     token.transferFrom(address(this), msg.sender, refundAmount);
-        // }         
+        }      
     }
 
     /*
@@ -345,6 +344,7 @@ contract Crate is Ownable {
                     records[_hash].listed = true;
                     emit RecordAdded(_hash);
                 }
+                i++;
             } 
         } 
     }

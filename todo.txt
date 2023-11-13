@@ -6,7 +6,7 @@ do we need an admin feature? if so, we could probably use a mapping instead of j
 
 emit app and list duration expiry times
 
-handle batch remove refund amount
+ensure that payouts for listing removal's account for challenges and whether or not they have any thing to deposit. SHOULD WE ONLY PAYOUT WHEN SOMETHING IS REMOVED OR WHEN A CHALLENGE US RESOLVED? 
 
 
 /
@@ -70,3 +70,5 @@ update max list length
 decide who to send remnants to (the proposer or challenger)
 break out into its own function. <<<< didnt do this. Its instead being paid out when the last user withdraws.
 
+
+handle batch remove refund amount <<< not sure we can do this, we need to pay out each record's owner address
