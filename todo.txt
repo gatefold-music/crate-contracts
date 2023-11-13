@@ -1,8 +1,6 @@
 think about sort order (red black tree)
 
-private listing? 
-
-length of playlist 
+private listing? aes ?
 
 do we need an admin feature? if so, we could probably use a mapping instead of just setting a function 
 
@@ -13,9 +11,7 @@ handle batch remove refund amount
 decide who to send remnants to 
 break out into its own function
 
-do i have to set the max amount of uin256? or does it default to 0 ? 
 
-handle remove listing decrement listLength !
 
 /
 /
@@ -67,5 +63,11 @@ enable payout address (splits module) for challenge
 
 ensure that poll reward pool is being decremented when someone withdraws their winnings
 
+handle remove listing decrement listLength !
 
+handle length of playlist
+
+set the max list amount of uin256? SHOULD WE set to zero if we dont care about list length? (idk because there will always actually be a length)
+
+update max list length
 

@@ -40,11 +40,16 @@ contract CrateTest is Test {
 
     function testSomething() public  {
         bytes32 a = bytes32("a super secret entry");
-        string memory b = "some crazy one word password";
+        // string memory b = "some crazy one word password";
 
-        bytes32 x = keccak256(abi.encodePacked(a, b));
-        console2.logBytes32(x);
+        // bytes32 x = keccak256(abi.encodePacked(a, b));
+        // console2.log(block.timestamp);
 
+
+        // uint256 x = type(uint256).max;
+
+        // uint256 r;
+        // console2.log(r);
         // require(keccak256(abi.encodePacked(_vote, _salt)) == voteHashes[_pollId][msg.sender]);
 
 
