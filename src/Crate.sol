@@ -54,8 +54,8 @@ contract Crate is Ownable {
      * EVENTS
      *
      */ 
-    event Application(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant);
-    event RecordAdded(bytes32 indexed recordHash);
+    event Application(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint applicationExpiry);
+    event RecordAdded(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint listExpiry);
     event Challenge(bytes32 indexed recordHash, uint challengeId, address indexed challenger);
     event ChallengeFailed(bytes32 indexed recordHash, uint indexed challengeId, uint rewardPool, address winner);
     event ChallengeSucceeded(bytes32 indexed recordHash);
@@ -109,14 +109,14 @@ contract Crate is Ownable {
         record.exists = true;
         record.tokenAddress = address(token);
 
-        if (appDuration > 0) record.applicationExpiry = block.timestamp + appDuration;
-
         require(token.transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
 
         if (listed) {
-            emit RecordAdded(_recordHash);
+            uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
+            emit RecordAdded(_recordHash, _amount, _data, msg.sender, expiry);
         } else {
-            emit Application(_recordHash, _amount, _data, msg.sender);
+            record.applicationExpiry = block.timestamp + appDuration;
+            emit Application(_recordHash, _amount, _data, msg.sender, record.applicationExpiry);
         }
     }
 
@@ -163,7 +163,8 @@ contract Crate is Ownable {
         require(listLength + 1 <= maxListLength, "Exceeds max length"); 
         
         records[_recordHash].listed = true;
-        emit RecordAdded(_recordHash);
+        uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
+        emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry);
     }
 
     /*
@@ -172,13 +173,10 @@ contract Crate is Ownable {
      */
     function removeRecord(bytes32 _recordHash) public {
         Record memory record = records[_recordHash];
-        require(abi.encode(record).length > 0, "Record does not exist");
+        require(record.exists, "Record does not exist");
         require(record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true), "Record is in challenged state");
         require(record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry ), "Only record owner or successful challenge can remove record from list");
         
-        /**
-        THIS MIGHT BE WRONG!! if this record has been challenged then payout should be different. 
-         */
         require(ERC20(record.tokenAddress).transferFrom(address(this), record.owner, record.deposit), "Tokens failed to transfer.");
 
         listLength -= 1;
@@ -215,7 +213,8 @@ contract Crate is Ownable {
             emit ChallengeFailed(_recordHash, challengeId, rewards, winner);
 
             if (!record.listed) {
-                emit RecordAdded(_recordHash);
+                uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
+                emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry);
                 record.listed = true;
             }
         } else { // challenge succeeded
@@ -256,31 +255,32 @@ contract Crate is Ownable {
         }
 
         uint8 addedCount = 0;
-        uint expiry = block.timestamp + appDuration;
         address tokenAddress = address(token);
 
-        unchecked {
-            for (uint8 i=0; i < length;) {
-                bytes32 _hash = _recordHashes[i];
-                string memory _data = _datas[i];
-                if (!records[_hash].exists) {
-                    addedCount += 1;
+        for (uint8 i=0; i < length;) {
+            bytes32 _hash = _recordHashes[i];
+            string memory _data = _datas[i];
+            if (!records[_hash].exists) {
+                addedCount += 1;
 
-                    Record storage record = records[_hash];
-                    record.listed = listed;
-                    record.owner = msg.sender;
-                    record.deposit = _amount;
-                    record.data = _data;
-                    record.applicationExpiry = expiry;
-                    record.exists = true;
-                    record.tokenAddress = tokenAddress;
+                Record storage record = records[_hash];
+                record.listed = listed;
+                record.owner = msg.sender;
+                record.deposit = _amount;
+                record.data = _data;
+                record.exists = true;
+                record.tokenAddress = tokenAddress;
 
-                    if (listed) {
-                        emit RecordAdded(_hash);
-                    } else {
-                        emit Application(_hash, _amount, _data, msg.sender);
-                    }
+                if (listed) {
+                    uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
+                    emit RecordAdded(_hash, _amount, _data, msg.sender, expiry);
+                } else {
+                    record.applicationExpiry = block.timestamp + appDuration;
+                    emit Application(_hash, _amount, _data, msg.sender, record.applicationExpiry);
                 }
+            }
+
+            unchecked {
                 i++;
             }
         }
@@ -300,23 +300,24 @@ contract Crate is Ownable {
         require(length > 0, "Hash list must have at least one entry");
         require(length < BATCH_MAX,  "Hash list is too long");
 
-        unchecked {
-            for (uint8 i=0; i < length;) {     
-                bytes32 _hash = _recordHashes[i];
-                Record storage record = records[_hash];
+        for (uint8 i=0; i < length;) {     
+            bytes32 _hash = _recordHashes[i];
+            Record storage record = records[_hash];
 
-                if (
-                    record.listed && // record is in crate
-                    (record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true)) && // no challenge or challenge has been resolved
-                    (record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry)) // caller is owner or list time has expired
-                ) {
-                    require(ERC20(record.tokenAddress).transferFrom(address(this),record.owner, record.deposit), "Tokens failed to transfer.");
-                    listLength -= 1;
-                    delete records[_hash];
-                    emit RecordRemoved(_hash);
-                }
-                i++;
+            if (
+                record.listed && // record is in crate
+                (record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true)) && // no challenge or challenge has been resolved
+                (record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry)) // caller is owner or list time has expired
+            ) {
+                require(ERC20(record.tokenAddress).transferFrom(address(this),record.owner, record.deposit), "Tokens failed to transfer.");
+                listLength -= 1;
+                delete records[_hash];
+                emit RecordRemoved(_hash);
             }
+
+            unchecked {
+                i++;
+            }                
         }      
     }
 
@@ -330,20 +331,22 @@ contract Crate is Ownable {
         require(listLength + length <= maxListLength, "Exceeds max length"); 
         uint currentTime = block.timestamp;
 
-        unchecked {
-            for (uint8 i=0; i < length;) {   
-                bytes32 _hash = _recordHashes[i];
+        for (uint8 i=0; i < length;) {   
+            bytes32 _hash = _recordHashes[i];
 
-                 if (
-                    records[_hash].exists &&
-                    !records[_hash].listed && 
-                    records[_hash].challengeId == 0 && 
-                    records[_hash].applicationExpiry > 0 && 
-                    currentTime > records[_hash].applicationExpiry
-                ) {
-                    records[_hash].listed = true;
-                    emit RecordAdded(_hash);
-                }
+                if (
+                records[_hash].exists &&
+                !records[_hash].listed && 
+                records[_hash].challengeId == 0 && 
+                records[_hash].applicationExpiry > 0 && 
+                currentTime > records[_hash].applicationExpiry
+            ) {
+                records[_hash].listed = true;
+                uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
+                emit RecordAdded(_hash, records[_hash].deposit, records[_hash].data, records[_hash].owner, expiry);
+            }
+            
+            unchecked {
                 i++;
             } 
         } 

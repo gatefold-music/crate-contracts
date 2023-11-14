@@ -15,7 +15,7 @@ contract CrateTest is Test {
     Crate public crate;
     address public ownerAddress = address(0x12345);
     address public spenderAddress = address(0x69420);
-        event RecordAdded(bytes32 indexed recordHash);
+    event RecordAdded(bytes32 indexed recordHash, uint indexed ts);
 
 
     function setUp() public {
@@ -58,6 +58,12 @@ contract CrateTest is Test {
 
 
         // crate.encode(a);
+
+
+        vm.expectEmit(true, true, false, true);
+        emit RecordAdded(a, block.timestamp);
+
+        emit RecordAdded(a, 99);
     }
 
     // function testSomethingAgain() public  {
