@@ -4,6 +4,8 @@ private listing? aes ?
 
 do we need an admin feature? if so, we could probably use a mapping instead of just setting a function 
 
+add modifiers
+
 /
 /
 / DONE

@@ -421,13 +421,13 @@ contract Crate is Ownable {
     //     return records[_recordHash].applicationExpiry > 0;
     // }
 
-    function challengeResolved(bytes32 _recordHash) view public returns (bool exists) {
-        return records[_recordHash].challengeId > 0 && records[_recordHash].resolved == true;
-    }
+    // function challengeResolved(bytes32 _recordHash) view public returns (bool exists) {
+    //     return records[_recordHash].challengeId > 0 && records[_recordHash].resolved == true;
+    // }
 
-    function getRecord(bytes32 _recordHash) view public returns (Record memory) {
-        return records[_recordHash];
-    }
+    // function getRecord(bytes32 _recordHash) view public returns (Record memory) {
+    //     return records[_recordHash];
+    // }
 
     function setAdmin(address _adminAddress) public onlyOwner {
         crateAdmin = _adminAddress;
