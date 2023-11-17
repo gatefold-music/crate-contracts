@@ -62,7 +62,6 @@ contract Crate is Ownable {
     event ApplicationRemoved(bytes32 indexed recordHash);
     event RecordRemoved(bytes32 indexed recordHash);
 
-
     constructor (string memory _name, address _token, address _voting, uint _minDeposit) {
         require(_token != address(0), "Token address should not be zero address");
         token = ERC20(_token);
@@ -408,28 +407,8 @@ contract Crate is Ownable {
          listDuration = _duration;
     }
 
-    /*
-     *
-     * UTILS
-     *
-     */ 
-    // function isAllowlisted(bytes32 _recordHash) view internal returns (bool allowListed) {
-    //     return records[_recordHash].listed;
-    // }
-
-    // function appWasMade(bytes32 _recordHash) view internal returns (bool exists) {
-    //     return records[_recordHash].applicationExpiry > 0;
-    // }
-
-    // function challengeResolved(bytes32 _recordHash) view public returns (bool exists) {
-    //     return records[_recordHash].challengeId > 0 && records[_recordHash].resolved == true;
-    // }
-
-    // function getRecord(bytes32 _recordHash) view public returns (Record memory) {
-    //     return records[_recordHash];
-    // }
-
-    function setAdmin(address _adminAddress) public onlyOwner {
-        crateAdmin = _adminAddress;
+    function isRecordListed(bytes32 _recordHash) public view returns (bool listed, address owner) {
+        Record memory record = records[_recordHash];
+        return (record.listed, record.owner);
     }
 }

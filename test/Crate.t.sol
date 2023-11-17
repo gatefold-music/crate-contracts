@@ -28,14 +28,14 @@ contract CrateTest is Test {
         vm.prank(ownerAddress);
         crate = new Crate("HIP-HOP", address(crateToken), address(pollRegistry), 10);
 
-        vm.prank(ownerAddress);
-        crate.setAdmin(address(crateRegistry));
+        // vm.prank(ownerAddress);
+        // crate.setAdmin(address(crateRegistry));
 
-        vm.prank(ownerAddress);
-        crateToken.mint(spenderAddress, 100);
+        // vm.prank(ownerAddress);
+        // crateToken.mint(spenderAddress, 100);
 
-        vm.prank(spenderAddress);
-        crateToken.maxApproval(address(crate));
+        // vm.prank(spenderAddress);
+        // crateToken.maxApproval(address(crate));
     }
 
     function testSomething() public  {

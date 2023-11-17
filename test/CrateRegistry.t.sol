@@ -26,8 +26,8 @@ contract CrateRegistryTest is Test {
         vm.prank(ownerAddress);
         crate = new Crate("HIP-HOP", address(crateToken), address(pollRegistry), 10);
 
-        vm.prank(ownerAddress);
-        crate.setAdmin(address(crateRegistry));
+        // vm.prank(ownerAddress);
+        // crate.setAdmin(address(crateRegistry));
     }
 
     function testOpen() public  {

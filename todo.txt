@@ -2,9 +2,16 @@ think about sort order (red black tree)
 
 private listing? aes ?
 
-do we need an admin feature? if so, we could probably use a mapping instead of just setting a function 
-
 add modifiers
+
+PayableContract? pay lister or owner
+
+CrateFactory 
+
+CrateFactoryFactory 
+
+add description;
+
 
 /
 /
@@ -76,3 +83,5 @@ emit app duration expiry times
 emit list duration expiry times
 
 move unchecked to just counter
+
+do we need an admin feature? if so, we could probably use a mapping instead of just setting a function << we dont need admin functionality at this point only owner is just fine
