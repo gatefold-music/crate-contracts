@@ -12,6 +12,10 @@ CrateFactoryFactory
 
 add description;
 
+curator tip function on crate 
+
+crate owner tip function 
+
 
 /
 /

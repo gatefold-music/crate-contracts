@@ -411,4 +411,16 @@ contract Crate is Ownable {
         Record memory record = records[_recordHash];
         return (record.listed, record.owner);
     }
+
+    function tipYourCurator(bytes32 _recordHash) public payable {
+        require(records[_recordHash].listed, "Listing does not exist");
+
+        address payable recipient = payable(records[_recordHash].owner);
+        recipient.transfer(msg.value);
+    }
+
+    function tipYourCurationist(bytes32 _recordHash) public payable {
+        address payable recipient = payable(owner());
+        recipient.transfer(msg.value);
+    }
 }
