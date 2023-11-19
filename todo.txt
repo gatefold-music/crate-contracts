@@ -1,8 +1,8 @@
-think about sort order (red black tree)
-
 private listing? aes ?
 
 add modifiers
+
+///
 
 CrateFactoryFactory 
 
@@ -98,4 +98,6 @@ add description;
 CrateFactory 
 
 PayableContract? pay lister or owner
+
+Sort order !! yay ended up going with a linked list and i think its siiiick. 
 

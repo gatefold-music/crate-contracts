@@ -19,6 +19,7 @@ contract Crate is Ownable {
     PollRegistry public pollRegistry;
     uint8 public constant BATCH_MAX = 51; 
     bool public closed;
+    bool public sortable;
     uint256 public listLength; 
     uint256 public maxListLength;
     
@@ -42,13 +43,19 @@ contract Crate is Ownable {
         bool exists;            // for validating if a record exists;
         address tokenAddress;    // token address for this record 
     }
+
+    struct Position {
+        bytes32 prev;
+        bytes32 next;
+    }
     
     /*
      *
      * Mappings
      *
      */
-    mapping(bytes32 => Record) public records; // This mapping holds the listings for this list
+    mapping(bytes32 => Record) public records; // This mapping holds the listings and applications for this list
+    mapping(bytes32 => Position) public positions; // Mapping to hold maintain sort
 
     /*
      *
@@ -62,6 +69,8 @@ contract Crate is Ownable {
     event ChallengeSucceeded(bytes32 indexed recordHash);
     event ApplicationRemoved(bytes32 indexed recordHash);
     event RecordRemoved(bytes32 indexed recordHash);
+    event SortOrderUpdated(bytes32 indexed recordHash, bytes32 prevRecordHash);
+    event SortOrderRemoved(bytes32 indexed recordHash);
 
     constructor (string memory _name, string memory _description, address _token, address _voting, uint _minDeposit) {
         require(_token != address(0), "Token address should not be zero address");
@@ -381,6 +390,10 @@ contract Crate is Ownable {
         closed = true;
     }
 
+    function updateSortability(bool _sortable) public onlyOwner {
+        sortable = _sortable;
+    }
+
     function updateMaxLength(uint256 _newListLength) public onlyOwner {
         require(_newListLength >= listLength, "Max length can not be less than current list length");
         maxListLength = _newListLength;
@@ -428,5 +441,32 @@ contract Crate is Ownable {
     function tipYourCurationist(bytes32 _recordHash) public payable {
         address payable recipient = payable(owner());
         recipient.transfer(msg.value);
+    }
+
+    function insertPosition(bytes32 _recordHash, bytes32 _prevHash) public {
+        require(sortable, "Sorting is disable");
+        require(token.balanceOf(msg.sender) > 0, "Insufficient token balance");
+        require(records[_recordHash].listed, "Record is not listed");
+        require(positions[_prevHash].next != bytes32(0) || positions[_prevHash].prev != bytes32(0), "Previous record hash is not sorted");
+
+        bytes32 next = positions[_prevHash].next;
+
+        positions[_prevHash].next = _recordHash;
+
+        positions[_recordHash].prev = _prevHash;
+        positions[_recordHash].next = next;
+
+        emit SortOrderUpdated(_recordHash, _prevHash);
+    }
+    function removePosition(bytes32 _recordHash) public {
+        require(sortable, "Sorting is disable");
+        require(token.balanceOf(msg.sender) > 0, "Insufficient token balance");
+        require(records[_recordHash].listed, "Record is not listed");
+        require(positions[_recordHash].next != bytes32(0) || positions[_recordHash].prev != bytes32(0), "Record hash is not sorted");
+
+
+        delete positions[_recordHash];
+
+        emit SortOrderRemoved(_recordHash);
     }
 }
