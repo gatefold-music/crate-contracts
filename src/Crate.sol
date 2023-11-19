@@ -10,6 +10,7 @@ import { console2} from "forge-std/Test.sol";
 
 contract Crate is Ownable { 
     string public name;
+    string public description;
     uint public minDeposit;
     uint public appDuration;
     uint public listDuration;
@@ -62,11 +63,12 @@ contract Crate is Ownable {
     event ApplicationRemoved(bytes32 indexed recordHash);
     event RecordRemoved(bytes32 indexed recordHash);
 
-    constructor (string memory _name, address _token, address _voting, uint _minDeposit) {
+    constructor (string memory _name, string memory _description, address _token, address _voting, uint _minDeposit) {
         require(_token != address(0), "Token address should not be zero address");
         token = ERC20(_token);
         pollRegistry = PollRegistry(_voting);
         name = _name;
+        description = _description;
         minDeposit = _minDeposit;
         appDuration = 0; // no application period
         listDuration = 0; // no listing period
@@ -364,6 +366,10 @@ contract Crate is Ownable {
      *
      */ 
     
+    function updateDescription(string memory _description) public onlyOwner {
+        description = _description;
+    }
+
     
     /*
      * @dev This locks the crate fooooreeeeeveer

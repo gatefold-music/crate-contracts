@@ -1,31 +1,30 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.21;
-import {CrateToken} from "./CrateToken.sol";
-import {PollRegistry} from "./PollRegistry.sol";
-import {Crate} from "./Crate.sol";
+import {CrateRegistry} from "./CrateRegistry.sol";
 
-contract CrateRegistry {
-    uint public crateId;
+
+contract CrateRegistryFactory {
+    uint public registryId;
     
     /*
      *
      * Mappings
      *
      */
-    mapping(uint => address) public crates; // This mapping holds all deployed crates
+    mapping(uint => address) public factories; // This mapping holds all deployed crates
 
-    event newCrate(address crateAddress);
+    event newRegistryFactory(address factoryAddress);
 
     constructor() {}
 
     function deployCrate(string memory _name, string memory _description, address _token, address _voting, uint _minDeposit) public {
-        Crate crate = new Crate(_name, _description, _token, _voting, _minDeposit);
-        crate.transferOwnership(msg.sender);
+        CrateRegistry registry = new CrateRegistry(_name, _description, _token, _voting, _minDeposit);
+        // registry.transferOwnership(msg.sender); ?????
 
-        address crateAddress = address(crate);
+        address registryAddress = address(registry);
 
-        crates[++crateId] = crateAddress;
-        emit newCrate(crateAddress);
+        crates[++registryId] = registryAddress;
+        emit newRegistryFactory(registryAddress);
     }
 
     function deployCrateFactory() public {

@@ -4,17 +4,16 @@ private listing? aes ?
 
 add modifiers
 
-PayableContract? pay lister or owner
-
-CrateFactory 
-
 CrateFactoryFactory 
 
-add description;
+Oracle create Crate? 
 
-curator tip function on crate 
 
-crate owner tip function 
+does a registry have an owner ? ?
+
+should the public registry have a tag???? 
+should they all have a tag ? 
+
 
 
 /
@@ -89,3 +88,14 @@ emit list duration expiry times
 move unchecked to just counter
 
 do we need an admin feature? if so, we could probably use a mapping instead of just setting a function << we dont need admin functionality at this point only owner is just fine
+
+curator tip function on crate 
+
+crate owner tip function 
+
+add description;
+
+CrateFactory 
+
+PayableContract? pay lister or owner
+
