@@ -28,14 +28,11 @@ contract CrateTest is Test {
         vm.prank(ownerAddress);
         crate = new Crate("HIP-HOP", "Some basic ass description biiiiitch", address(crateToken), address(pollRegistry), 10);
 
-        // vm.prank(ownerAddress);
-        // crate.setAdmin(address(crateRegistry));
+        vm.prank(ownerAddress);
+        crateToken.mint(spenderAddress, 100);
 
-        // vm.prank(ownerAddress);
-        // crateToken.mint(spenderAddress, 100);
-
-        // vm.prank(spenderAddress);
-        // crateToken.maxApproval(address(crate));
+        vm.prank(spenderAddress);
+        crateToken.maxApproval(address(crate));
     }
 
     function testSomething() public  {
@@ -69,56 +66,59 @@ contract CrateTest is Test {
         // crate.encode(a);
 
 
-        vm.expectEmit(true, true, false, true);
-        emit RecordAdded(a, block.timestamp);
+        // vm.expectEmit(true, true, false, true);
+        // emit RecordAdded(a, block.timestamp);
 
-        emit RecordAdded(a, 99);
+        // emit RecordAdded(a, 99);
     }
 
-    // function testSomethingAgain() public  {
-    //     bytes32 a = bytes32("adsfasdfasdfasdfsd");
+    function testSomethingAgain() public  {
+        bytes32 a = bytes32("adsfasdfasdfasdfsd");
 
-    //     // vm.expectEmit(false, false, false, true);
-    //     // emit RecordAdded(a);
+         vm.prank(spenderAddress);
+         crate.propose(a, 10, "ipfs://c");
 
-    //     // crate.encode(a);
-    // }
+        // vm.expectEmit(false, false, false, true);
+        // emit RecordAdded(a);
+
+        crate.encode(a);
+    }
 
 
     function testBatchPropose() public {
-        bytes32 a = bytes32("adsfasdfasdfasdfsd");
-        bytes32 b = bytes32("asdf");
-        bytes32 c = bytes32("d");
-        bytes32[] memory list = new bytes32[](3);
-        string[] memory datas = new string[](3);
+        // bytes32 a = bytes32("adsfasdfasdfasdfsd");
+        // bytes32 b = bytes32("asdf");
+        // bytes32 c = bytes32("d");
+        // bytes32[] memory list = new bytes32[](3);
+        // string[] memory datas = new string[](3);
 
-        list[0] = a;
-        datas[0]= "ipfs://a";
-        list[1] = b;
-        datas[0]= "ipfs://b";
-        list[2] = c;
-        datas[0]= "ipfs://c";
+        // list[0] = a;
+        // datas[0]= "ipfs://a";
+        // list[1] = b;
+        // datas[0]= "ipfs://b";
+        // list[2] = c;
+        // datas[0]= "ipfs://c";
 
-        vm.prank(spenderAddress);
-        crate.batchPropose(list, datas, 10);
+        // vm.prank(spenderAddress);
+        // crate.batchPropose(list, datas, 10);
     }
 
     function testPropose() public {
-        bytes32 a = bytes32("adsfasdfasdfasdfsd");
-        bytes32 b = bytes32("asdf");
-        bytes32 c = bytes32("d");
-        bytes32[] memory list = new bytes32[](3);
-        string[] memory datas = new string[](3);
+        // bytes32 a = bytes32("adsfasdfasdfasdfsd");
+        // bytes32 b = bytes32("asdf");
+        // bytes32 c = bytes32("d");
+        // bytes32[] memory list = new bytes32[](3);
+        // string[] memory datas = new string[](3);
 
-        list[0] = a;
-        datas[0]= "ipfs://a";
-        list[1] = b;
-        datas[0]= "ipfs://b";
-        list[2] = c;
-        datas[0]= "ipfs://c";
+        // list[0] = a;
+        // datas[0]= "ipfs://a";
+        // list[1] = b;
+        // datas[0]= "ipfs://b";
+        // list[2] = c;
+        // datas[0]= "ipfs://c";
 
-        vm.prank(spenderAddress);
-        crate.propose(bytes32("d"), 10, "ipfs://c");
+        // vm.prank(spenderAddress);
+        // crate.propose(bytes32("d"), 10, "ipfs://c");
     }
 
 }

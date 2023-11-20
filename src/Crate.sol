@@ -166,7 +166,7 @@ contract Crate is Ownable {
      */
     function resolveApplication(bytes32 _recordHash) public {
         Record memory record = records[_recordHash];
-        require(abi.encode(record).length > 0, "Record does not exist");
+        require(record.exists, "Record does not exist");
         require(!record.listed, "Record already allow listed");
         require(record.challengeId == 0, "Challenge will resolve listing");
         require(record.applicationExpiry > 0 && block.timestamp > record.applicationExpiry, "Record has no Expiry or has not expired");
@@ -354,12 +354,8 @@ contract Crate is Ownable {
             } 
         } 
     }
-
-    function encode(bytes32 _hash) public {
-        // uint256 x = type(uint256).max;
-
-        uint256 r;
-        console2.log(r);
+    function encode(bytes32 _hash) public exists(_hash) isListed(_hash) notSealed {
+        
     }
 
     /*
@@ -420,23 +416,10 @@ contract Crate is Ownable {
     }
 
     function isRecordListed(bytes32 _recordHash) public view returns (bool listed, address owner) {
-        Record memory record = records[_recordHash];
-        return (record.listed, record.owner);
+        return (records[_recordHash].listed, records[_recordHash].owner);
     }
 
-    function tipYourCurator(bytes32 _recordHash) public payable {
-        require(records[_recordHash].listed, "Listing does not exist");
-
-        address payable recipient = payable(records[_recordHash].owner);
-        recipient.transfer(msg.value);
-    }
-
-    function tipYourCurationist(bytes32 _recordHash) public payable {
-        address payable recipient = payable(owner());
-        recipient.transfer(msg.value);
-    }
-
-    function insertPosition(bytes32 _recordHash, bytes32 _prevHash) public {
+    function updatePosition(bytes32 _recordHash, bytes32 _prevHash) public {
         require(sortable, "Sorting is disable");
         require(token.balanceOf(msg.sender) > 0, "Insufficient token balance");
         require(records[_recordHash].listed, "Record is not listed");
@@ -451,24 +434,13 @@ contract Crate is Ownable {
 
         emit SortOrderUpdated(_recordHash, _prevHash);
     }
-    function removePosition(bytes32 _recordHash) public {
-        require(sortable, "Sorting is disable");
-        require(token.balanceOf(msg.sender) > 0, "Insufficient token balance");
-        require(records[_recordHash].listed, "Record is not listed");
-        require(positions[_recordHash].next != bytes32(0) || positions[_recordHash].prev != bytes32(0), "Record hash is not sorted");
-
-
-        delete positions[_recordHash];
-
-        emit SortOrderRemoved(_recordHash);
-    }
 
     /*
      *
      * PRIVATE
      *
      */
-    function _remove(bytes32 _recordHash) private {
+    function _remove(bytes32 _recordHash) internal {
         if (records[_recordHash].listed) {
             delete positions[_recordHash];
             emit RecordRemoved(_recordHash);
