@@ -191,8 +191,7 @@ contract Crate is Ownable {
 
         listLength -= 1;
 
-        delete records[_recordHash];
-        emit RecordRemoved(_recordHash);
+        _remove(_recordHash);
     }
 
     /*
@@ -231,14 +230,9 @@ contract Crate is Ownable {
             emit ChallengeSucceeded(_recordHash);
             winner = record.challengerPayoutAddress;
             rewards = record.deposit;
-            if(record.listed){ 
-                listLength -= 1;
-                emit RecordRemoved(_recordHash);
-            } else {
-                emit ApplicationRemoved(_recordHash);
-            }
 
-            delete records[_recordHash];
+            listLength -= 1;
+            _remove(_recordHash);
         }
 
         require(ERC20(record.tokenAddress).transfer(winner, rewards));
@@ -321,8 +315,7 @@ contract Crate is Ownable {
             ) {
                 require(ERC20(record.tokenAddress).transferFrom(address(this),record.owner, record.deposit), "Tokens failed to transfer.");
                 listLength -= 1;
-                delete records[_hash];
-                emit RecordRemoved(_hash);
+                _remove(_hash);
             }
 
             unchecked {
@@ -468,5 +461,21 @@ contract Crate is Ownable {
         delete positions[_recordHash];
 
         emit SortOrderRemoved(_recordHash);
+    }
+
+    /*
+     *
+     * PRIVATE
+     *
+     */
+    function _remove(bytes32 _recordHash) private {
+        if (records[_recordHash].listed) {
+            delete positions[_recordHash];
+            emit RecordRemoved(_recordHash);
+        } else {
+            emit ApplicationRemoved(_recordHash);
+        }
+
+        delete records[_recordHash];
     }
 }

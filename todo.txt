@@ -1,6 +1,9 @@
-private listing? aes ?
+private listing? aes ? 
+^^ submit both the secret md5 hash and the aes encrypted hash. They should match once unvieled to prove that they were pointing to the same data
 
 add modifiers
+
+make internal functions for updates
 
 ///
 
@@ -100,4 +103,7 @@ CrateFactory
 PayableContract? pay lister or owner
 
 Sort order !! yay ended up going with a linked list and i think its siiiick. 
+
+remove sort order if listing is removed (resolve challenge, remove listing , batch remove listing)
+
 
