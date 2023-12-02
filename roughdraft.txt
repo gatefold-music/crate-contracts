@@ -1,0 +1,22 @@
+secret hash = value + secret
+
+encrypted = metadata url
+
+
+metadata = {
+    id: "some unique id or title",
+    idMd5Hash: "0xasdfasdfasdfasdf",
+    image: "http://asdfadsf",
+    description: "this is a bunch of stuff about the entry"
+}
+
+// encode metadata and put it in some url 
+// encrypt the url 
+// aes256 encrypted hash that represents the metadata object 
+
+// create secret hash from md5hash 
+
+// propose should be the (secretHash, amount, encryptedStringThatRepresentsDataObject)
+
+// unlock the proposal by
+//  providing key to unlock hash, providing url, oracle signature saying the url 

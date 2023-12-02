@@ -81,7 +81,7 @@ contract CrateTest is Test {
         // vm.expectEmit(false, false, false, true);
         // emit RecordAdded(a);
 
-        crate.encode(a);
+        // crate.encode(a);
     }
 
 

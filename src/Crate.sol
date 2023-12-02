@@ -354,9 +354,9 @@ contract Crate is Ownable {
             } 
         } 
     }
-    function encode(bytes32 _hash) public exists(_hash) isListed(_hash) notSealed {
+    // function encode(bytes32 _hash) public exists(_hash) isListed(_hash) notSealed {
         
-    }
+    // }
 
     /*
      *
