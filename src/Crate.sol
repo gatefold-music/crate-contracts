@@ -42,6 +42,7 @@ contract Crate is Ownable {
         uint listingExpiry;     // zero if no expiration, otherwise record expire time
         bool exists;            // for validating if a record exists;
         address tokenAddress;    // token address for this record 
+        // bool isPrivate;         // is record private
     }
 
     struct Position {
@@ -99,6 +100,10 @@ contract Crate is Ownable {
      * @param _data metadata string or uri 
      */
     function propose(bytes32 _recordHash, uint _amount, string memory _data) public {
+        // bytes32(abi.encodePacked(_data));
+        require(_recordHash == bytes32(abi.encodePacked(_data)), "Data mismatch");
+
+        // require(keccak256(string(abi.encodePacked(_recordHash))) == keccak256(_data), "Data mismatch");
         require(!closed, "This crate has been closed");
         require(token.balanceOf(msg.sender) >= _amount, "Insufficient token balance");
         require(!records[_recordHash].exists, "Record already exists");

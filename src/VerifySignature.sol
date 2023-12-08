@@ -35,7 +35,7 @@ contract VerifySignature is Ownable {
     hash = "0xcf36ac4f97dc10d91fc2cbb20d718e94a8cbfe0f82eaedc6a4aa38946fb797cd"
     */
 
-    function getMessageHash(
+    function getHashedParams(
         string memory _message
     ) private pure returns (bytes32) {
         return keccak256(abi.encode(_message));
@@ -52,7 +52,7 @@ contract VerifySignature is Ownable {
     Signature will be different for different accounts
     0x993dab3dd91f5c6dc28e17439be475478f5635c92a56e17e82349d3fb2f166196f466c0b4e0c146f285204f0dcb13e5ae67bc33f4b888ec32dfe0a063e8f3f781b
     */
-    function getEthSignedMessageHash(
+    function getFormattedMessageHash(
         bytes32 _messageHash
     ) private pure returns (bytes32) {
         /*
@@ -78,15 +78,13 @@ contract VerifySignature is Ownable {
         string memory _message,
         bytes memory _signature
     ) public view returns (bool) {
-        bytes32 messageHash = getMessageHash(_message);
-        bytes32 ethSignedMessageHash = getEthSignedMessageHash(messageHash);
-        console2.logBytes32(ethSignedMessageHash);
-        console2.log(recoverSigner(ethSignedMessageHash, _signature));
+        bytes32 messageHash = getHashedParams(_message);
+        bytes32 ethSignedMessageHash = getFormattedMessageHash(messageHash);
 
-        return recoverSigner(ethSignedMessageHash, _signature) == owner();
+        return getMessageSigner(ethSignedMessageHash, _signature) == owner();
     }
 
-    function recoverSigner(
+    function getMessageSigner(
         bytes32 _ethSignedMessageHash,
         bytes memory _signature
     ) private pure returns (address) {
@@ -98,8 +96,6 @@ contract VerifySignature is Ownable {
     function splitSignature(
         bytes memory sig
     ) private pure returns (bytes32 r, bytes32 s, uint8 v) {
-        // require(sig.length == 65, "invalid signature length");
-
         assembly {
             /*
             First 32 bytes stores the length of the signature

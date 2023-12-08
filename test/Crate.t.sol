@@ -74,14 +74,11 @@ contract CrateTest is Test {
 
     function testSomethingAgain() public  {
         bytes32 a = bytes32("adsfasdfasdfasdfsd");
+        console2.logBytes32(a);
 
          vm.prank(spenderAddress);
-         crate.propose(a, 10, "ipfs://c");
+         crate.propose(a, 10, "adsfasdfasdfasdfsd");
 
-        // vm.expectEmit(false, false, false, true);
-        // emit RecordAdded(a);
-
-        // crate.encode(a);
     }
 
 
