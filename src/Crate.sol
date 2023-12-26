@@ -135,6 +135,8 @@ contract Crate is Ownable {
         }
     }
 
+    function revealProposal(bytes32 _secretHash, bytes32 _recordHash, string memory _data, bytes signature) public {}
+
     /*
      * @dev Challenge a record or application
      * @notice Triggers a new poll for token holders to settle dispute
