@@ -58,7 +58,8 @@ contract Crate is Ownable {
      */
     mapping(bytes32 => Record) public records; // This mapping holds the listings and applications for this list
     mapping(bytes32 => Position) public positions; // Mapping to maintain sort order
-    mapping(bytes32 => address) public oracles; // Private listings => oracle address
+    mapping(bytes32 => address) public oracles; // private record hash => oracle address
+    mapping(bytes32 => mapping(address => bool)) public privateViewers; // private record hash => viewer address => viewer can view
 
     /*
      *
@@ -124,6 +125,11 @@ contract Crate is Ownable {
         _;
     }
 
+    modifier isRecordOwner(bytes32 _hash, address _sender) {
+        require(records[_hash].owner == _sender, "Sender is not record owner"); 
+        _;
+    }
+
     /*
      *
      * CORE
@@ -168,6 +174,9 @@ contract Crate is Ownable {
         bool isBeingListed = appDuration == 0 ? true : false;
         require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
         require(!isBeingListed || token.transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
+
+        records[_secretHash].isPrivate = true;
+        oracles[_secretHash] = verifierAddress;
 
         _add(_secretHash, _amount, _secretData, msg.sender, isBeingListed, true);
     }
@@ -409,6 +418,14 @@ contract Crate is Ownable {
      * ADMIN
      *
      */ 
+
+    function updateRecordViewer(bytes32 _recordHash, address _viewerAddress, bool _canView) 
+        public 
+        isRecordOwner(_recordHash, msg.sender)
+    {
+        require(records[_recordHash].isPrivate, "Record is not private");
+        privateViewers[_recordHash][_viewerAddress] = _canView;
+    } 
     
     function updateDescription(string memory _description) public onlyOwner {
         description = _description;
@@ -497,11 +514,6 @@ contract Crate is Ownable {
         record.data = _data;
         record.doesExist = true;
         record.tokenAddress = address(token);
-        
-        if (isPrivate) {
-            record.isPrivate = true;
-            oracles[_hash] = verifierAddress;
-        }
         
 
         if (isBeingListed) {
