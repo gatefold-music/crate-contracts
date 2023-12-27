@@ -4,6 +4,7 @@ pragma solidity ^0.8.21;
 import {PollRegistry} from "./PollRegistry.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "./VerifySignature.sol";
 import { console2} from "forge-std/Test.sol";
 
 
@@ -14,14 +15,14 @@ contract Crate is Ownable {
     uint public minDeposit;
     uint public appDuration;
     uint public listDuration;
-    address public crateAdmin;
     ERC20 public token;
     PollRegistry public pollRegistry;
     uint8 public constant BATCH_MAX = 51; 
-    bool public closed;
-    bool public sortable;
+    bool public isSealed;
+    bool public isSortable;
     uint256 public listLength; 
     uint256 public maxListLength;
+    address public verifierAddress;
     
     /*
      *
@@ -30,7 +31,7 @@ contract Crate is Ownable {
      */
     struct Record {
         uint applicationExpiry; // Expiration date of apply stage
-        bool listed;       // Indicates registry status
+        bool listed;            // Indicates registry status
         address owner;          // Owner of record
         uint challengeId;       // the challenge id of the current challenge
         uint deposit;           // Number of tokens staked for this record
@@ -40,9 +41,9 @@ contract Crate is Ownable {
         address challengerPayoutAddress; // address to send payout or refund (if empty address, defaults to challenger address)
         bool resolved;          // true if record has been challenged and voting has closed
         uint listingExpiry;     // zero if no expiration, otherwise record expire time
-        bool exists;            // for validating if a record exists;
-        address tokenAddress;    // token address for this record 
-        // bool isPrivate;         // is record private
+        bool doesExist;        // for validating if a record exists;
+        address tokenAddress;   // token address for this record 
+        bool isPrivate;         // is record private
     }
 
     struct Position {
@@ -56,15 +57,16 @@ contract Crate is Ownable {
      *
      */
     mapping(bytes32 => Record) public records; // This mapping holds the listings and applications for this list
-    mapping(bytes32 => Position) public positions; // Mapping to hold maintain sort
+    mapping(bytes32 => Position) public positions; // Mapping to maintain sort order
+    mapping(bytes32 => address) public oracles; // Private listings => oracle address
 
     /*
      *
      * EVENTS
      *
      */ 
-    event Application(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint applicationExpiry);
-    event RecordAdded(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint listExpiry);
+    event Application(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint applicationExpiry, bool isPrivate);
+    event RecordAdded(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint listExpiry, bool isPrivate);
     event Challenge(bytes32 indexed recordHash, uint challengeId, address indexed challenger);
     event ChallengeFailed(bytes32 indexed recordHash, uint indexed challengeId, uint rewardPool, address winner);
     event ChallengeSucceeded(bytes32 indexed recordHash);
@@ -88,6 +90,42 @@ contract Crate is Ownable {
 
     /*
      *
+     * MODIFIERS
+     *
+     */
+    modifier validateHash(bytes32 _hash, string memory _data) {
+        require(_hash == bytes32(abi.encodePacked(_data)),  "Hash does not match data string");
+        _;
+    }
+
+    modifier isNotSealed() {
+        require(!isSealed, "Crate has been sealed close");
+        _;
+    }
+
+    modifier sufficientBalance(uint _amount, address _sender) {
+        require(token.balanceOf(_sender) >= _amount, "Insufficient token balance");
+        _;
+    }
+
+    modifier verifyMinDeposit(uint _amount) {
+        require(_amount >= minDeposit, "Does not meet crate minimum");
+        _;
+    }
+
+    modifier doesNotExist(bytes32 _hash) {
+        require(!records[_hash].doesExist, "Record already exists");
+        _;
+    }
+
+    modifier crateNotFull(uint newListingCount) {
+        bool isBeingListed = appDuration == 0 ? true : false;
+        require(!isBeingListed || listLength + newListingCount<= maxListLength, "Exceeds max length"); 
+        _;
+    }
+
+    /*
+     *
      * CORE
      *
      */ 
@@ -99,43 +137,44 @@ contract Crate is Ownable {
      * @param _amount the amount of tokens to stake for this record (must be at least minimum deposit)
      * @param _data metadata string or uri 
      */
-    function propose(bytes32 _recordHash, uint _amount, string memory _data) public {
-        // bytes32(abi.encodePacked(_data));
-        require(_recordHash == bytes32(abi.encodePacked(_data)), "Data mismatch");
+    function propose(bytes32 _recordHash, uint _amount, string memory _data) 
+        public 
+        validateHash(_recordHash, _data) 
+        isNotSealed()
+        verifyMinDeposit(_amount)
+        doesNotExist(_recordHash)
+        sufficientBalance(_amount, msg.sender) 
+    {
+        bool isBeingListed = appDuration == 0 ? true : false;
+        require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
+        require(!isBeingListed || token.transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
 
-        // require(keccak256(string(abi.encodePacked(_recordHash))) == keccak256(_data), "Data mismatch");
-        require(!closed, "This crate has been closed");
-        require(token.balanceOf(msg.sender) >= _amount, "Insufficient token balance");
-        require(!records[_recordHash].exists, "Record already exists");
-        require(_amount >= minDeposit, "Not enough stake for application.");
-
-        bool listed = appDuration == 0 ? true : false;
-
-        if (listed) {   
-            require(listLength + 1 <= maxListLength, "Exceeds max length"); 
-            listLength += 1;
-        }
-
-        Record storage record = records[_recordHash];
-        record.listed = listed;
-        record.owner = msg.sender;
-        record.deposit = _amount;
-        record.data = _data;
-        record.exists = true;
-        record.tokenAddress = address(token);
-
-        require(token.transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
-
-        if (listed) {
-            uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-            emit RecordAdded(_recordHash, _amount, _data, msg.sender, expiry);
-        } else {
-            record.applicationExpiry = block.timestamp + appDuration;
-            emit Application(_recordHash, _amount, _data, msg.sender, record.applicationExpiry);
-        }
+        _add(_recordHash, _amount, _data, msg.sender, isBeingListed, false);
     }
 
-    function revealProposal(bytes32 _secretHash, bytes32 _recordHash, string memory _data, bytes signature) public {}
+    function privatePropose(bytes32 _secretHash, uint _amount, string memory _secretData,  bytes memory _signature) 
+        public
+        validateHash(_secretHash, _secretData) 
+        isNotSealed()
+        verifyMinDeposit(_amount)
+        doesNotExist(_secretHash)
+        sufficientBalance(_amount, msg.sender) 
+    {
+        require(verifierAddress != address(0), "Crate owner has not set a verifier address");
+
+        bytes32 message = keccak256(abi.encode(_secretHash, _signature));
+        require(Oracle.verify(message, _signature, verifierAddress), "Invalid oracle signature"); // verify signature 
+
+        bool isBeingListed = appDuration == 0 ? true : false;
+        require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
+        require(!isBeingListed || token.transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
+
+        _add(_secretHash, _amount, _secretData, msg.sender, isBeingListed, true);
+    }
+
+    function revealProposal(bytes32 _secretHash, bytes32 _recordHash, string memory _data, bytes memory signature) public {
+
+    }
 
     /*
      * @dev Challenge a record or application
@@ -144,11 +183,11 @@ contract Crate is Ownable {
      * @param _amount the amount of tokens to stake for this record (must be at least the staked amount for record)
      */
     function challenge(bytes32 _recordHash, uint _amount, address _payoutAddress) external returns (uint challengeID) {
-        require(!closed, "This crate has been closed");
+        require(!isSealed, "This crate has been closed");
         Record storage record = records[_recordHash];
         require(ERC20(record.tokenAddress).balanceOf(msg.sender) >= _amount, "Insufficient token balance");
         require(_amount >= record.deposit, "Not enough stake for application.");
-        require(record.exists, "Record does not exist."); 
+        require(record.doesExist, "Record does not exist."); 
         require(record.challengeId == 0, "Record has already been challenged.");
 
         address payoutAddress = _payoutAddress != address(0) ? _payoutAddress : msg.sender;
@@ -173,7 +212,7 @@ contract Crate is Ownable {
      */
     function resolveApplication(bytes32 _recordHash) public {
         Record memory record = records[_recordHash];
-        require(record.exists, "Record does not exist");
+        require(record.doesExist, "Record does not exist");
         require(!record.listed, "Record already allow listed");
         require(record.challengeId == 0, "Challenge will resolve listing");
         require(record.applicationExpiry > 0 && block.timestamp > record.applicationExpiry, "Record has no Expiry or has not expired");
@@ -181,7 +220,7 @@ contract Crate is Ownable {
         
         records[_recordHash].listed = true;
         uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-        emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry);
+        emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, record.isPrivate);
     }
 
     /*
@@ -190,7 +229,7 @@ contract Crate is Ownable {
      */
     function removeRecord(bytes32 _recordHash) public {
         Record memory record = records[_recordHash];
-        require(record.exists, "Record does not exist");
+        require(record.doesExist, "Record does not exist");
         require(record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true), "Record is in challenged state");
         require(record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry ), "Only record owner or successful challenge can remove record from list");
         
@@ -230,7 +269,7 @@ contract Crate is Ownable {
 
             if (!record.listed) {
                 uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-                emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry);
+                emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, record.isPrivate);
                 record.listed = true;
             }
         } else { // challenge succeeded
@@ -251,7 +290,7 @@ contract Crate is Ownable {
      *
      */
     function batchPropose(bytes32[] memory _recordHashes, string[] memory _datas, uint _amount) public {
-        require(!closed, "This crate has been closed");
+        require(!isSealed, "This crate has been closed");
         uint length = _recordHashes.length;
         require(length > 0, "Hash list must have at least one entry");
         require(length < BATCH_MAX, "Hash list is too long");
@@ -271,7 +310,7 @@ contract Crate is Ownable {
         for (uint8 i=0; i < length;) {
             bytes32 _hash = _recordHashes[i];
             string memory _data = _datas[i];
-            if (!records[_hash].exists) {
+            if (!records[_hash].doesExist) {
                 addedCount += 1;
 
                 Record storage record = records[_hash];
@@ -279,15 +318,15 @@ contract Crate is Ownable {
                 record.owner = msg.sender;
                 record.deposit = _amount;
                 record.data = _data;
-                record.exists = true;
+                record.doesExist = true;
                 record.tokenAddress = tokenAddress;
 
                 if (listed) {
                     uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-                    emit RecordAdded(_hash, _amount, _data, msg.sender, expiry);
+                    emit RecordAdded(_hash, _amount, _data, msg.sender, expiry, false);
                 } else {
                     record.applicationExpiry = block.timestamp + appDuration;
-                    emit Application(_hash, _amount, _data, msg.sender, record.applicationExpiry);
+                    emit Application(_hash, _amount, _data, msg.sender, record.applicationExpiry, record.isPrivate);
                 }
             }
 
@@ -345,7 +384,7 @@ contract Crate is Ownable {
             bytes32 _hash = _recordHashes[i];
 
                 if (
-                records[_hash].exists &&
+                records[_hash].doesExist &&
                 !records[_hash].listed && 
                 records[_hash].challengeId == 0 && 
                 records[_hash].applicationExpiry > 0 && 
@@ -353,7 +392,7 @@ contract Crate is Ownable {
             ) {
                 records[_hash].listed = true;
                 uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-                emit RecordAdded(_hash, records[_hash].deposit, records[_hash].data, records[_hash].owner, expiry);
+                emit RecordAdded(_hash, records[_hash].deposit, records[_hash].data, records[_hash].owner, expiry, records[_hash].isPrivate);
             }
             
             unchecked {
@@ -375,19 +414,22 @@ contract Crate is Ownable {
         description = _description;
     }
 
+    function updateVerifier(address _verifierAddress) public onlyOwner {
+        verifierAddress = _verifierAddress;
+    }
+
     
     /*
      * @dev This locks the crate fooooreeeeeveer
      * @notice any pending challenges (polls) can still be resolved even after locking
      * @notice this action cannot be undone
-     * @param _token erc20 token address to use for new proposals 
      */
-    function close() public onlyOwner {
-        closed = true;
+    function sealCrate() public onlyOwner {
+        isSealed = true;
     }
 
     function updateSortability(bool _sortable) public onlyOwner {
-        sortable = _sortable;
+        isSortable = _sortable;
     }
 
     function updateMaxLength(uint256 _newListLength) public onlyOwner {
@@ -427,7 +469,7 @@ contract Crate is Ownable {
     }
 
     function updatePosition(bytes32 _recordHash, bytes32 _prevHash) public {
-        require(sortable, "Sorting is disable");
+        require(isSortable, "Sorting is disable");
         require(token.balanceOf(msg.sender) > 0, "Insufficient token balance");
         require(records[_recordHash].listed, "Record is not listed");
         require(positions[_prevHash].next != bytes32(0) || positions[_prevHash].prev != bytes32(0), "Previous record hash is not sorted");
@@ -447,14 +489,40 @@ contract Crate is Ownable {
      * PRIVATE
      *
      */
-    function _remove(bytes32 _recordHash) internal {
-        if (records[_recordHash].listed) {
-            delete positions[_recordHash];
-            emit RecordRemoved(_recordHash);
+
+     function _add(bytes32 _hash,uint _amount, string memory _data, address _sender, bool isBeingListed, bool isPrivate) private {
+        Record storage record = records[_hash];
+        record.owner = msg.sender;
+        record.deposit = _amount;
+        record.data = _data;
+        record.doesExist = true;
+        record.tokenAddress = address(token);
+        
+        if (isPrivate) {
+            record.isPrivate = true;
+            oracles[_hash] = verifierAddress;
+        }
+        
+
+        if (isBeingListed) {
+            uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
+            record.listed = true;
+            listLength += 1;
+            emit RecordAdded(_hash, _amount, _data, _sender, expiry, isPrivate);
         } else {
-            emit ApplicationRemoved(_recordHash);
+            record.applicationExpiry = block.timestamp + appDuration;
+            emit Application(_hash, _amount, _data, _sender, record.applicationExpiry, isPrivate);
+        }
+     }
+
+    function _remove(bytes32 _hash) private {
+        if (records[_hash].listed) {
+            delete positions[_hash];
+            emit RecordRemoved(_hash);
+        } else {
+            emit ApplicationRemoved(_hash);
         }
 
-        delete records[_recordHash];
+        delete records[_hash];
     }
 }

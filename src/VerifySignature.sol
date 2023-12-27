@@ -19,21 +19,22 @@ How to Sign and Verify
 3. Compare recovered signer to claimed signer
 */
 
-contract VerifySignature is Ownable {
-    /* 1. Unlock MetaMask account
-    ethereum.enable()
-    */
+library Oracle {
+    function verify(
+        bytes32 _message,
+        bytes memory _signature,
+        address verifierAddress
+    ) public view returns (bool) {
+        bytes32 ethSignedMessageHash = getFormattedMessageHash(_message);
 
-    /* 2. Get message hash to sign
-    getMessageHash(
-        0x14723A09ACff6D2A60DcdF7aA4AFf308FDDC160C,
-        123,
-        "coffee and donuts",
-        1
-    )
+        return getMessageSigner(ethSignedMessageHash, _signature) == verifierAddress;
+    }
 
-    hash = "0xcf36ac4f97dc10d91fc2cbb20d718e94a8cbfe0f82eaedc6a4aa38946fb797cd"
-    */
+    /*
+     *
+     * PRIVATE 
+     *
+     */
 
     function getHashedParams(
         string memory _message
@@ -41,17 +42,6 @@ contract VerifySignature is Ownable {
         return keccak256(abi.encode(_message));
     }
 
-    /* 3. Sign message hash
-    # using browser
-    account = "copy paste account of signer here"
-    ethereum.request({ method: "personal_sign", params: [account, hash]}).then(console.log)
-
-    # using web3
-    web3.personal.sign(hash, web3.eth.defaultAccount, console.log)
-
-    Signature will be different for different accounts
-    0x993dab3dd91f5c6dc28e17439be475478f5635c92a56e17e82349d3fb2f166196f466c0b4e0c146f285204f0dcb13e5ae67bc33f4b888ec32dfe0a063e8f3f781b
-    */
     function getFormattedMessageHash(
         bytes32 _messageHash
     ) private pure returns (bytes32) {
@@ -63,25 +53,6 @@ contract VerifySignature is Ownable {
             keccak256(
                 abi.encodePacked("\x19Ethereum Signed Message:\n32", _messageHash)
             );
-    }
-
-    /* 4. Verify signature
-    signer = 0xB273216C05A8c0D4F0a4Dd0d7Bae1D2EfFE636dd
-    to = 0x14723A09ACff6D2A60DcdF7aA4AFf308FDDC160C
-    amount = 123
-    message = "coffee and donuts"
-    nonce = 1
-    signature =
-        0x993dab3dd91f5c6dc28e17439be475478f5635c92a56e17e82349d3fb2f166196f466c0b4e0c146f285204f0dcb13e5ae67bc33f4b888ec32dfe0a063e8f3f781b
-    */
-    function verify(
-        string memory _message,
-        bytes memory _signature
-    ) public view returns (bool) {
-        bytes32 messageHash = getHashedParams(_message);
-        bytes32 ethSignedMessageHash = getFormattedMessageHash(messageHash);
-
-        return getMessageSigner(ethSignedMessageHash, _signature) == owner();
     }
 
     function getMessageSigner(
@@ -97,15 +68,6 @@ contract VerifySignature is Ownable {
         bytes memory sig
     ) private pure returns (bytes32 r, bytes32 s, uint8 v) {
         assembly {
-            /*
-            First 32 bytes stores the length of the signature
-
-            add(sig, 32) = pointer of sig + 32
-            effectively, skips first 32 bytes of signature
-
-            mload(p) loads next 32 bytes starting at the memory address p into memory
-            */
-
             // first 32 bytes, after the length prefix
             r := mload(add(sig, 32))
             // second 32 bytes
