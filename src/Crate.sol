@@ -167,6 +167,25 @@ contract Crate is Ownable {
         _add(_recordHash, _amount, _data, msg.sender, isBeingListed, false);
     }
 
+
+    function proposeWithSig(bytes32 _recordHash, uint _amount, string memory _data, bytes memory _signature) 
+        public 
+        validateHash(_recordHash, _data) 
+        crateIsNotSealed()
+        verifyMinDeposit(_amount)
+        doesNotExist(_recordHash)
+        sufficientBalance(_amount, msg.sender) 
+    {
+        bytes32 message = keccak256(abi.encode(_recordHash, _data));
+        require(Oracle.verify(message, _signature, verifierAddress), "Invalid oracle signature"); // verify signature 
+
+        bool isBeingListed = appDuration == 0 ? true : false;
+        require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
+        require(!isBeingListed || token.transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
+
+        _add(_recordHash, _amount, _data, msg.sender, isBeingListed, false);
+    }
+
     function privatePropose(bytes32 _secretHash, uint _amount, string memory _secretData,  bytes memory _signature) 
         public
         validateHash(_secretHash, _secretData) 
@@ -177,7 +196,7 @@ contract Crate is Ownable {
     {
         require(verifierAddress != address(0), "Crate owner has not set a verifier address");
 
-        bytes32 message = keccak256(abi.encode(_secretHash, _signature));
+        bytes32 message = keccak256(abi.encode(_secretHash, _secretData));
         require(Oracle.verify(message, _signature, verifierAddress), "Invalid oracle signature"); // verify signature 
 
         bool isBeingListed = appDuration == 0 ? true : false;
