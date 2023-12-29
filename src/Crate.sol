@@ -43,7 +43,7 @@ contract Crate is Ownable {
         uint listingExpiry;     // zero if no expiration, otherwise record expire time
         bool doesExist;        // for validating if a record exists;
         address tokenAddress;   // token address for this record 
-        bool isPrivate;         // is record private
+        address oracleAddress;   // oracle address for private listing. zero address if public
     }
 
     struct Position {
@@ -58,7 +58,6 @@ contract Crate is Ownable {
      */
     mapping(bytes32 => Record) public records; // This mapping holds the listings and applications for this list
     mapping(bytes32 => Position) public positions; // Mapping to maintain sort order
-    mapping(bytes32 => address) public oracles; // private record hash => oracle address
     mapping(bytes32 => mapping(address => bool)) public privateViewers; // private record hash => viewer address => viewer can view
 
     /*
@@ -99,7 +98,7 @@ contract Crate is Ownable {
         _;
     }
 
-    modifier isNotSealed() {
+    modifier crateIsNotSealed() {
         require(!isSealed, "Crate has been sealed close");
         _;
     }
@@ -130,6 +129,15 @@ contract Crate is Ownable {
         _;
     }
 
+    modifier doesExist(bytes32 _hash) {
+        require(records[_hash].doesExist, "Record does not exist");
+        _;
+    }
+
+    modifier unchallenged(bytes32 _hash) {
+        require(records[_hash].challengeId == 0 || (records[_hash].challengeId > 0 && records[_hash].resolved == true), "Record is in challenged state");
+        _;
+    }
     /*
      *
      * CORE
@@ -146,7 +154,7 @@ contract Crate is Ownable {
     function propose(bytes32 _recordHash, uint _amount, string memory _data) 
         public 
         validateHash(_recordHash, _data) 
-        isNotSealed()
+        crateIsNotSealed()
         verifyMinDeposit(_amount)
         doesNotExist(_recordHash)
         sufficientBalance(_amount, msg.sender) 
@@ -161,7 +169,7 @@ contract Crate is Ownable {
     function privatePropose(bytes32 _secretHash, uint _amount, string memory _secretData,  bytes memory _signature) 
         public
         validateHash(_secretHash, _secretData) 
-        isNotSealed()
+        crateIsNotSealed()
         verifyMinDeposit(_amount)
         doesNotExist(_secretHash)
         sufficientBalance(_amount, msg.sender) 
@@ -175,14 +183,28 @@ contract Crate is Ownable {
         require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
         require(!isBeingListed || token.transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
 
-        records[_secretHash].isPrivate = true;
-        oracles[_secretHash] = verifierAddress;
+        records[_secretHash].oracleAddress = verifierAddress;
 
         _add(_secretHash, _amount, _secretData, msg.sender, isBeingListed, true);
     }
 
-    function revealProposal(bytes32 _secretHash, bytes32 _recordHash, string memory _data, bytes memory signature) public {
+    function revealProposal(bytes32 _secretHash, bytes32 _recordHash, string memory _data, bytes memory _signature) 
+        public
+        crateIsNotSealed()
+        doesExist(_secretHash)
+        doesNotExist(_recordHash)
+        validateHash(_recordHash, _data)
+        isRecordOwner(_secretHash, msg.sender)
+        unchallenged(_secretHash)
+    {
+        bytes32 message = keccak256(abi.encode(_secretHash, _secretHash, _signature));
 
+        Record memory privateRecord = records[_secretHash];
+        require(Oracle.verify(message, _signature, privateRecord.oracleAddress), "Invalid oracle signature"); // verify signature 
+
+        _remove(_secretHash);
+
+        _add(_recordHash, privateRecord.deposit, _data, privateRecord.owner, true, false);
     }
 
     /*
@@ -229,7 +251,8 @@ contract Crate is Ownable {
         
         records[_recordHash].listed = true;
         uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-        emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, record.isPrivate);
+        bool isPrivate = record.oracleAddress == address(0) ? false : true;
+        emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, isPrivate);
     }
 
     /*
@@ -243,8 +266,6 @@ contract Crate is Ownable {
         require(record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry ), "Only record owner or successful challenge can remove record from list");
         
         require(ERC20(record.tokenAddress).transferFrom(address(this), record.owner, record.deposit), "Tokens failed to transfer.");
-
-        listLength -= 1;
 
         _remove(_recordHash);
     }
@@ -278,7 +299,8 @@ contract Crate is Ownable {
 
             if (!record.listed) {
                 uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-                emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, record.isPrivate);
+                bool isPrivate = record.oracleAddress == address(0) ? false : true;
+                emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, isPrivate);
                 record.listed = true;
             }
         } else { // challenge succeeded
@@ -286,7 +308,6 @@ contract Crate is Ownable {
             winner = record.challengerPayoutAddress;
             rewards = record.deposit;
 
-            listLength -= 1;
             _remove(_recordHash);
         }
 
@@ -335,7 +356,9 @@ contract Crate is Ownable {
                     emit RecordAdded(_hash, _amount, _data, msg.sender, expiry, false);
                 } else {
                     record.applicationExpiry = block.timestamp + appDuration;
-                    emit Application(_hash, _amount, _data, msg.sender, record.applicationExpiry, record.isPrivate);
+                    bool isPrivate = record.oracleAddress == address(0) ? false : true;
+
+                    emit Application(_hash, _amount, _data, msg.sender, record.applicationExpiry, isPrivate);
                 }
             }
 
@@ -369,7 +392,6 @@ contract Crate is Ownable {
                 (record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry)) // caller is owner or list time has expired
             ) {
                 require(ERC20(record.tokenAddress).transferFrom(address(this),record.owner, record.deposit), "Tokens failed to transfer.");
-                listLength -= 1;
                 _remove(_hash);
             }
 
@@ -401,7 +423,9 @@ contract Crate is Ownable {
             ) {
                 records[_hash].listed = true;
                 uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-                emit RecordAdded(_hash, records[_hash].deposit, records[_hash].data, records[_hash].owner, expiry, records[_hash].isPrivate);
+                bool isPrivate = records[_hash].oracleAddress == address(0) ? false : true;
+
+                emit RecordAdded(_hash, records[_hash].deposit, records[_hash].data, records[_hash].owner, expiry, isPrivate);
             }
             
             unchecked {
@@ -423,7 +447,8 @@ contract Crate is Ownable {
         public 
         isRecordOwner(_recordHash, msg.sender)
     {
-        require(records[_recordHash].isPrivate, "Record is not private");
+        bool isPrivate = records[_recordHash].oracleAddress == address(0) ? false : true;
+        require(isPrivate, "Record is not private");
         privateViewers[_recordHash][_viewerAddress] = _canView;
     } 
     
@@ -509,7 +534,7 @@ contract Crate is Ownable {
 
      function _add(bytes32 _hash,uint _amount, string memory _data, address _sender, bool isBeingListed, bool isPrivate) private {
         Record storage record = records[_hash];
-        record.owner = msg.sender;
+        record.owner = _sender;
         record.deposit = _amount;
         record.data = _data;
         record.doesExist = true;
@@ -528,6 +553,8 @@ contract Crate is Ownable {
      }
 
     function _remove(bytes32 _hash) private {
+        listLength -= 1;
+
         if (records[_hash].listed) {
             delete positions[_hash];
             emit RecordRemoved(_hash);
