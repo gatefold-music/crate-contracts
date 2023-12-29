@@ -44,6 +44,7 @@ contract Crate is Ownable {
         bool doesExist;        // for validating if a record exists;
         address tokenAddress;   // token address for this record 
         address oracleAddress;   // oracle address for private listing. zero address if public
+        bool isPrivate;
     }
 
     struct Position {
@@ -56,7 +57,7 @@ contract Crate is Ownable {
      * Mappings
      *
      */
-    mapping(bytes32 => Record) public records; // This mapping holds the listings and applications for this list
+    mapping(bytes32 => Record) private records; // This mapping holds the listings and applications for this list
     mapping(bytes32 => Position) public positions; // Mapping to maintain sort order
     mapping(bytes32 => mapping(address => bool)) public privateViewers; // private record hash => viewer address => viewer can view
 
@@ -183,6 +184,7 @@ contract Crate is Ownable {
         require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
         require(!isBeingListed || token.transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
 
+        records[_secretHash].isPrivate = true;
         records[_secretHash].oracleAddress = verifierAddress;
 
         _add(_secretHash, _amount, _secretData, msg.sender, isBeingListed, true);
@@ -196,15 +198,16 @@ contract Crate is Ownable {
         validateHash(_recordHash, _data)
         isRecordOwner(_secretHash, msg.sender)
         unchallenged(_secretHash)
-    {
-        bytes32 message = keccak256(abi.encode(_secretHash, _secretHash, _signature));
+    {   
+        Record memory record = records[_secretHash];
+        require(record.isPrivate ,"Listing is not private");
 
-        Record memory privateRecord = records[_secretHash];
-        require(Oracle.verify(message, _signature, privateRecord.oracleAddress), "Invalid oracle signature"); // verify signature 
+        bytes32 message = keccak256(abi.encode(_secretHash, _secretHash, _signature));
+        require(Oracle.verify(message, _signature, record.oracleAddress), "Invalid oracle signature"); // verify signature 
 
         _remove(_secretHash);
 
-        _add(_recordHash, privateRecord.deposit, _data, privateRecord.owner, true, false);
+        _add(_recordHash, record.deposit, _data, record.owner, true, false);
     }
 
     /*
@@ -249,10 +252,9 @@ contract Crate is Ownable {
         require(record.applicationExpiry > 0 && block.timestamp > record.applicationExpiry, "Record has no Expiry or has not expired");
         require(listLength + 1 <= maxListLength, "Exceeds max length"); 
         
-        records[_recordHash].listed = true;
+        record.listed = true;
         uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-        bool isPrivate = record.oracleAddress == address(0) ? false : true;
-        emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, isPrivate);
+        emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, record.isPrivate);
     }
 
     /*
@@ -299,8 +301,7 @@ contract Crate is Ownable {
 
             if (!record.listed) {
                 uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-                bool isPrivate = record.oracleAddress == address(0) ? false : true;
-                emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, isPrivate);
+                emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, record.isPrivate);
                 record.listed = true;
             }
         } else { // challenge succeeded
@@ -356,9 +357,8 @@ contract Crate is Ownable {
                     emit RecordAdded(_hash, _amount, _data, msg.sender, expiry, false);
                 } else {
                     record.applicationExpiry = block.timestamp + appDuration;
-                    bool isPrivate = record.oracleAddress == address(0) ? false : true;
 
-                    emit Application(_hash, _amount, _data, msg.sender, record.applicationExpiry, isPrivate);
+                    emit Application(_hash, _amount, _data, msg.sender, record.applicationExpiry, record.isPrivate);
                 }
             }
 
@@ -409,7 +409,7 @@ contract Crate is Ownable {
     function batchResolveApplication(bytes32[] memory _recordHashes) public {  
         uint length = _recordHashes.length;      
         require(listLength + length <= maxListLength, "Exceeds max length"); 
-        uint currentTime = block.timestamp;
+        uint currentTime = block.timestamp; 
 
         for (uint8 i=0; i < length;) {   
             bytes32 _hash = _recordHashes[i];
@@ -423,9 +423,8 @@ contract Crate is Ownable {
             ) {
                 records[_hash].listed = true;
                 uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-                bool isPrivate = records[_hash].oracleAddress == address(0) ? false : true;
 
-                emit RecordAdded(_hash, records[_hash].deposit, records[_hash].data, records[_hash].owner, expiry, isPrivate);
+                emit RecordAdded(_hash, records[_hash].deposit, records[_hash].data, records[_hash].owner, expiry, records[_hash].isPrivate);
             }
             
             unchecked {
@@ -447,8 +446,7 @@ contract Crate is Ownable {
         public 
         isRecordOwner(_recordHash, msg.sender)
     {
-        bool isPrivate = records[_recordHash].oracleAddress == address(0) ? false : true;
-        require(isPrivate, "Record is not private");
+        require(records[_recordHash].isPrivate, "Record is not private");
         privateViewers[_recordHash][_viewerAddress] = _canView;
     } 
     
