@@ -18,7 +18,7 @@ contract PollRegistry is ReentrancyGuard {
      * CONSTANTS
      *
      */
-    uint public constant VOTE_QUORUM = 50; // major wins
+    uint public constant VOTE_QUORUM = 50; // majority wins
     uint public constant COMMIT_DURATION = 86400; // one day 
     uint public constant REVEAL_DURATION = 86400; // one day 
 

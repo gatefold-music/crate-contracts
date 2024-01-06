@@ -235,12 +235,15 @@ contract Crate is Ownable {
      * @param _recordHash keccak256 hash of record identifier
      * @param _amount the amount of tokens to stake for this record (must be at least the staked amount for record)
      */
-    function challenge(bytes32 _recordHash, uint _amount, address _payoutAddress) external returns (uint challengeID) {
-        require(!isSealed, "This crate has been closed");
+    function challenge(bytes32 _recordHash, uint _amount, address _payoutAddress) 
+        external
+        crateIsNotSealed()
+        doesExist(_recordHash)
+        returns (uint challengeID) {
+
         Record storage record = records[_recordHash];
         require(ERC20(record.tokenAddress).balanceOf(msg.sender) >= _amount, "Insufficient token balance");
         require(_amount >= record.deposit, "Not enough stake for application.");
-        require(record.doesExist, "Record does not exist."); 
         require(record.challengeId == 0, "Record has already been challenged.");
 
         address payoutAddress = _payoutAddress != address(0) ? _payoutAddress : msg.sender;
@@ -256,6 +259,49 @@ contract Crate is Ownable {
         emit Challenge(_recordHash, newPollId, msg.sender);
 
         return newPollId;
+    }
+
+    /*
+     * @dev Resolve challenge once voting has completed
+     * @notice If list length has been reached, winning address can still call this but adding entry to list with be skipped
+     * @param _recordHash keccak256 hash of record identifier
+     */
+    function resolveChallenge(bytes32 _recordHash) public {
+        Record storage record = records[_recordHash];
+        require(record.challengeId > 0, "No challenge for record");
+        require(record.resolved == false, "Challenge has already been resolved");
+        require(pollRegistry.hasResolved(record.challengeId) == true, "Poll has not ended");
+        address winningOwner = pollRegistry.hasPassed(record.challengeId) ? record.owner : record.challenger;
+        require(listLength + 1 <= maxListLength || msg.sender == winningOwner, "Max length reached or not authorized to skip list addition");
+
+        address recordOwner = record.owner;
+        uint challengeId = record.challengeId;
+        uint challengeDeposit = record.challengeDeposit;
+        uint rewards = 0;
+
+        record.resolved = true;
+
+        address winner;
+
+        if (pollRegistry.hasPassed(challengeId)) { // challenge failed 
+            winner = recordOwner;
+            rewards = challengeDeposit;
+            emit ChallengeFailed(_recordHash, challengeId, rewards, winner);
+
+            if (!record.listed) {
+                uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
+                emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, record.isPrivate);
+                record.listed = true;
+            }
+        } else { // challenge succeeded
+            emit ChallengeSucceeded(_recordHash);
+            winner = record.challengerPayoutAddress;
+            rewards = record.deposit;
+
+            _remove(_recordHash);
+        }
+
+        require(ERC20(record.tokenAddress).transfer(winner, rewards));
     }
 
     /*
@@ -289,49 +335,6 @@ contract Crate is Ownable {
         require(ERC20(record.tokenAddress).transferFrom(address(this), record.owner, record.deposit), "Tokens failed to transfer.");
 
         _remove(_recordHash);
-    }
-
-    /*
-     * @dev Resolve challenge once voting has completed
-     * @notice If list length has been reached, winning address can still call this but adding entry to list with be skipped
-     * @param _recordHash keccak256 hash of record identifier
-     */
-    function resolveChallenge(bytes32 _recordHash) public {
-        Record storage record = records[_recordHash];
-        require(record.challengeId > 0, "No challenge for record");
-        require(record.resolved == false, "Challenge has already been resolved");
-        require(pollRegistry.hasResolved(record.challengeId) == true, "Poll has not ended");
-        address winningOwner = pollRegistry.hasPassed(record.challengeId) ? record.owner : record.challenger;
-        require(listLength + 1 <= maxListLength || msg.sender == winningOwner, "Max length reached or not authorized to skip list addition");
-
-        address recordOwner = record.owner;
-        uint challengeId = record.challengeId;
-        uint challengeDeposit = record.challengeDeposit;
-        uint rewards = 0;
-
-        record.resolved = true;
-
-        address winner;
-
-        if (pollRegistry.hasPassed(challengeId)) { //challenge failed 
-            winner = recordOwner;
-            rewards = challengeDeposit;
-            emit ChallengeFailed(_recordHash, challengeId, rewards, winner);
-
-            if (!record.listed) {
-                uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-                emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, record.isPrivate);
-                record.listed = true;
-            }
-        } else { // challenge succeeded
-            emit ChallengeSucceeded(_recordHash);
-            winner = record.challengerPayoutAddress;
-            rewards = record.deposit;
-
-            _remove(_recordHash);
-        }
-
-        require(ERC20(record.tokenAddress).transfer(winner, rewards));
     }
 
     /*

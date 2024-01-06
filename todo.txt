@@ -1,7 +1,9 @@
-private listing? aes ? 
-^^ submit both the secret md5 hash and the aes encrypted hash. They should match once unvieled to prove that they were pointing to the same data
 
 cleanup (refactor)
+
+add erc tokens to indicate likes 
+
+figure out which address to check balance for on challenge
 
 ///
 
@@ -107,3 +109,6 @@ remove sort order if listing is removed (resolve challenge, remove listing , bat
 make internal functions for updates
 
 add modifiers
+
+private listing? aes ? 
+^^ submit both the secret md5 hash and the aes encrypted hash. They should match once unvieled to prove that they were pointing to the same data
