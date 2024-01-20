@@ -4,21 +4,24 @@ pragma solidity ^0.8.21;
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract TestContract is Ownable {
-    string public testString;
-    bytes private contents;
-    constructor(bytes memory _contents) {
-        contents = _contents;
-        testString = "some random test string";
-    }
-    function readContents() public onlyOwner view returns (bytes memory) {
-        return contents;
+    uint public length;
+
+    mapping(uint => string) private records; 
+
+    constructor() {}
+    function readContents(uint position) public onlyOwner view returns (string memory) {
+        return records[position];
     }
 
-    function writeContents(bytes memory _newContents) public {
-        contents = _newContents;
+    function writeTestString(uint position, string memory _contents) public onlyOwner {
+        records[position] = _contents;
     }
 
-    function writeTestString(string memory _contents) public {
-        testString = _contents;
+    function writeString(uint position, string memory _contents) public  {
+        records[position] = _contents;
+    }
+
+    function readString(uint position) public view returns (string memory) {
+        return records[position];
     }
 }

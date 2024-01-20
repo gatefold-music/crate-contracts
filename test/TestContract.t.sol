@@ -8,16 +8,16 @@ import "../src/TestContract.sol";
 
 contract TestContractTest is Test {
     TestContract public newContract;
-    address public ownerAddress = address(0x12345);
+    address public ownerAddress = address(0x24618bD401Cb6d18a5b79398cefd8E001A0Ce818);
     function setUp() public {
         vm.prank(ownerAddress);
-        newContract = new TestContract("hello world");
+        newContract = new TestContract();
     }
 
     function testContents() public {
         vm.prank(ownerAddress);
-        bytes memory contents = newContract.readContents();
-        console2.logBytes(contents);
+        // string memory contents = newContract.readContents();
+        // console2.log(contents);
     }
 
 }

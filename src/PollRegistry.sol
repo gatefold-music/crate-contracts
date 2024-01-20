@@ -45,8 +45,7 @@ contract PollRegistry is ReentrancyGuard {
         address winnerAddress;
         uint withdrawnRewardAmount;
         address proposerAddress;
-        address challengerAddress;
-        
+        address challengerAddress;   
     }
 
     /*

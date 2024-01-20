@@ -2,16 +2,12 @@
 pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
-import "../src/VerifySignature.sol";
-import "../src/TestContract.sol";
+import "../src/PollRegistry.sol";
 
 // source .env
+// forge script script/DeployPoller.s.sol:DeployScript --rpc-url $SEPOLIA_RPC_URL  --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_KEY -vvvv
 
-// base mainnet 
-// script/DeployVerifier.s.sol
-// forge script script/DeployVerifier.s.sol:DeployScript --rpc-url $BASE_MAINNET_RPC_URL  --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_KEY -vvvv
-
-// forge script script/DeployVerifier.s.sol:DeployScript --rpc-url $BASE_SEPOLIA_RPC_URL  --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_KEY -vvvv
+// forge script script/DeployPoller.s.sol:DeployScript --rpc-url $BASE_SEPOLIA_RPC_URL  --private-key $PRIVATE_KEY --broadcast
 
 // forge script script/DeployErc20.s.sol:DeployScript --rpc-url $MAINNET_RPC_URL  --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_KEY -vvvv
 
@@ -28,7 +24,7 @@ contract DeployScript is Script {
 
         // VerifySignature sigVerify = new VerifySignature();
 
-        TestContract c = new TestContract();
+       new PollRegistry();
 
         vm.stopBroadcast();
     }
