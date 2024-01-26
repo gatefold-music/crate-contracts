@@ -161,7 +161,7 @@ contract PollRegistry is ReentrancyGuard {
      * @param _vote the vote committed to commitVote, either for or against
      */
     function revealVote(uint _pollId, uint _salt, bool _vote) public pollExists(_pollId){
-        Poll memory poll = polls[_pollId];
+        Poll storage poll = polls[_pollId];
         require(poll.commitEndDate < block.timestamp && block.timestamp < poll.revealEndDate, "Reveal stage not active");
         require(commits[_pollId][msg.sender], "No vote committed");
         require(!reveals[_pollId][msg.sender], "Already revealed a vote");

@@ -21,8 +21,7 @@ contract RewardTest is Test {
 
     event PollCreated(uint commitEndDate, uint revealEndDate, uint indexed pollId, address indexed creator);
     event VoteCommitted(uint pollId, uint _amount, address voter);
-
-
+    event VoteRevealed(uint indexed pollId, uint numTokens, bool indexed choice, address indexed voter);
 
     CrateToken public token;
     function setUp() public {
@@ -71,7 +70,9 @@ contract RewardTest is Test {
         token.approveForOwner(voter3, address(pr));
     }
 
-
+    /*
+        Create Poll
+     */
 
     function testCreatePoll() public {
         uint commitEndDate = block.timestamp + COMMIT_DURATION;
@@ -92,6 +93,10 @@ contract RewardTest is Test {
         assertEq(poll.proposerAddress, proposer);
         assertEq(poll.challengerAddress, challenger);
     }
+
+    /*
+        Commit vote
+     */
 
     function testCommitVote() public {
         uint salt = 69;
@@ -149,8 +154,6 @@ contract RewardTest is Test {
     }
 
     function test_NoEmptyHash() public {
-        uint salt = 69;
-        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
         uint pollId = pr.createPoll(address(token) ,proposer, challenger);
 
         vm.prank(voter1);
@@ -177,5 +180,55 @@ contract RewardTest is Test {
         vm.expectRevert("Insufficient token balance");
         pr.commitVote(pollId, secretVote,  101);
     }
+
+    /*
+        Reveal vote
+     */
+
+     function testRevealVoteFor() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  1);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.expectEmit(true, true, true, true);
+        emit VoteRevealed(pollId, 1, true,  voter1);
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt,  true);
+
+        assertEq(pr.reveals(pollId, voter1), true);
+        assertEq(pr.votes(pollId, voter1), true);
+
+        PollRegistry.Poll memory poll = pr.getPoll(pollId);
+        assertEq(poll.votesFor, 1);
+        assertEq(poll.votersFor, 1);
+     }
+
+    function testRevealVoteAgainst() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(false, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  1);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.expectEmit(true, true, true, true);
+        emit VoteRevealed(pollId, 1, false,  voter1);
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt,  false);
+
+        assertEq(pr.reveals(pollId, voter1), true);
+        assertEq(pr.votes(pollId, voter1), false);
+
+        PollRegistry.Poll memory poll = pr.getPoll(pollId);
+        assertEq(poll.votesAgainst, 1);
+        assertEq(poll.votersAgainst, 1);
+     }
 
 }
