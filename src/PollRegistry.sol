@@ -165,7 +165,7 @@ contract PollRegistry is ReentrancyGuard {
         require(poll.commitEndDate < block.timestamp && block.timestamp < poll.revealEndDate, "Reveal stage not active");
         require(commits[_pollId][msg.sender], "No vote committed");
         require(!reveals[_pollId][msg.sender], "Already revealed a vote");
-        require(keccak256(abi.encodePacked(_vote, _salt)) == voteHashes[_pollId][msg.sender]);
+        require(keccak256(abi.encodePacked(_vote, _salt)) == voteHashes[_pollId][msg.sender], "Does not match committed vote");
 
         uint _amount = balances[_pollId][msg.sender];
 

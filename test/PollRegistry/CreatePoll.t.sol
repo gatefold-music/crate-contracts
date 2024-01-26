@@ -231,4 +231,72 @@ contract RewardTest is Test {
         assertEq(poll.votersAgainst, 1);
      }
 
+    function test_NotInRevealStage() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  1);
+
+
+        vm.expectRevert("Reveal stage not active");
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt,  true);
+
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION() + 1);
+
+        vm.expectRevert("Reveal stage not active");
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt,  true);
+     }
+
+    function test_NoCommittedVote() public {
+        uint salt = 69;
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.expectRevert("No vote committed");
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt,  true);
+    }
+
+    function test_VoteAlreadyRevealed() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  1);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt,  true);
+
+        vm.expectRevert("Already revealed a vote");
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt,  true);
+    }
+
+    function test_CommittedVoteDoesntMatch() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  1);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.expectRevert("Does not match committed vote");
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt,  false);
+
+        vm.expectRevert("Does not match committed vote");
+        vm.prank(voter1);
+        pr.revealVote(pollId, 420,  true);
+    }
 }
