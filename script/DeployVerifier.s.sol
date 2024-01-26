@@ -28,7 +28,7 @@ contract DeployScript is Script {
 
         // VerifySignature sigVerify = new VerifySignature();
 
-        TestContract c = new TestContract();
+        NFT c = new NFT();
 
         vm.stopBroadcast();
     }

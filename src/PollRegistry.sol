@@ -134,9 +134,9 @@ contract PollRegistry is ReentrancyGuard {
      * @param _amount amount of tokens to stake on this vote. 1 token = 1 vote
      */
     function commitVote(uint _pollId, bytes32 _secretHash, uint _amount) public pollExists(_pollId) nonReentrant {
-        Poll memory poll = polls[_pollId];
+        Poll storage poll = polls[_pollId];
         require(poll.exists == true, "Poll does not exist");
-        require(block.timestamp < poll.commitEndDate, "Commit stage not active");
+        require(block.timestamp < poll.commitEndDate, "Commit stage has ended");
         require(!commits[_pollId][msg.sender], "Already committed a vote");
         require(_secretHash != bytes32(0), "Secret hash cannot be empty");
 

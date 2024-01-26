@@ -15,8 +15,13 @@ contract RewardTest is Test {
     address public owner = address(0x69420);
     address public proposer = address(0x12345);
     address public challenger = address(0x67890);
+    address public voter1 = address(0x11111);
+    address public voter2 = address(0x22222);
+    address public voter3 = address(0x33333);
 
     event PollCreated(uint commitEndDate, uint revealEndDate, uint indexed pollId, address indexed creator);
+    event VoteCommitted(uint pollId, uint _amount, address voter);
+
 
 
     CrateToken public token;
@@ -46,6 +51,24 @@ contract RewardTest is Test {
 
         vm.prank(owner);
         token.approveForOwner(challenger, address(pr));
+
+        vm.prank(owner);
+        token.mint(voter1, 100);
+
+        vm.prank(owner);
+        token.approveForOwner(voter1, address(pr));
+
+        vm.prank(owner);
+        token.mint(voter2, 100);
+
+        vm.prank(owner);
+        token.approveForOwner(voter2, address(pr));
+
+        vm.prank(owner);
+        token.mint(voter3, 100);
+
+        vm.prank(owner);
+        token.approveForOwner(voter3, address(pr));
     }
 
 
@@ -68,7 +91,91 @@ contract RewardTest is Test {
         assertEq(poll.tokenAddress, address(token));
         assertEq(poll.proposerAddress, proposer);
         assertEq(poll.challengerAddress, challenger);
+    }
 
+    function testCommitVote() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.expectEmit(true, true, true, true);
+        emit VoteCommitted(pollId, 1, voter1);
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  1);
+        
+        uint voterBalance = pr.balances(pollId, voter1);
+        bool hasCommitted = pr.commits(pollId, voter1);
+        bytes32 secretHash =  pr.voteHashes(pollId, voter1);
+
+        PollRegistry.Poll memory poll = pr.getPoll(pollId);
+
+        assertEq(voterBalance, 1);
+        assertEq(hasCommitted, true);
+        assertEq(secretHash, secretVote);
+        assertEq(poll.totalDeposits, 1);
+    }
+
+    function test_PollDoesntExist() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+
+        vm.prank(voter1);
+        vm.expectRevert("Poll does not exist");
+        pr.commitVote(1, secretVote,  1);
+    }
+
+    function test_CommitStageHasEnded() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+        vm.prank(voter1);
+        vm.expectRevert("Commit stage has ended");
+        pr.commitVote(pollId, secretVote,  1);
+    }
+
+    function test_NoDuplicateVotes() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  1);
+
+        vm.prank(voter1);
+        vm.expectRevert("Already committed a vote");
+        pr.commitVote(pollId, secretVote,  1);
+    }
+
+    function test_NoEmptyHash() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        vm.expectRevert("Secret hash cannot be empty");
+        pr.commitVote(pollId, bytes32(0),  1);
+    }
+
+    function test_InsufficientBalance() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        vm.expectRevert("Insufficient token balance");
+        pr.commitVote(pollId, secretVote,  101);
+    }
+
+    function test_FailedTransfer() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        vm.expectRevert("Insufficient token balance");
+        pr.commitVote(pollId, secretVote,  101);
     }
 
 }

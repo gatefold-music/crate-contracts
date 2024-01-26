@@ -1,27 +1,17 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
+import "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 
-contract TestContract is Ownable {
-    uint public length;
+contract NFT is ERC721 {
+    uint256 public currentTokenId;
 
-    mapping(uint => string) private records; 
+    constructor() ERC721("NFT Name", "NFT") {}
 
-    constructor() {}
-    function readContents(uint position) public onlyOwner view returns (string memory) {
-        return records[position];
-    }
-
-    function writeTestString(uint position, string memory _contents) public onlyOwner {
-        records[position] = _contents;
-    }
-
-    function writeString(uint position, string memory _contents) public  {
-        records[position] = _contents;
-    }
-
-    function readString(uint position) public view returns (string memory) {
-        return records[position];
+    function mint(address recipient) public payable returns (uint256) {
+        uint256 newItemId = ++currentTokenId;
+        _safeMint(recipient, newItemId);
+        return newItemId;
     }
 }
+
