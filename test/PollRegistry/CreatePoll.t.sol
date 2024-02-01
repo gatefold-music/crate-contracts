@@ -33,9 +33,7 @@ contract RewardTest is Test {
          vm.prank(owner);
          token.mint(owner, 1000);
 
-        vm.prank(owner);
-        token.mint(owner, 1000);
-
+        vm.prank(address(pr));
         token.maxApproval(address(pr));
 
         vm.prank(owner);
@@ -298,5 +296,125 @@ contract RewardTest is Test {
         vm.expectRevert("Does not match committed vote");
         vm.prank(voter1);
         pr.revealVote(pollId, 420,  true);
+    }
+
+    /*
+        Resolve poll
+     */
+
+    function testResolvePoll() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  1);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt, true);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION());
+
+        pr.resolvePoll(pollId);
+
+        PollRegistry.Poll memory poll = pr.getPoll(pollId);
+
+        assertEq(poll.winnerAddress, proposer);
+        assertEq(poll.resolved, true);
+        assertEq(poll.passed, true);
+        assertEq(poll.rewardPool, 0);
+     }
+
+    function testResolvePollChallenge() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  30);
+
+        uint salt2 = 420;
+        bytes32 secretVote2 = keccak256(abi.encodePacked(false, salt2));
+
+        vm.prank(voter2);
+        pr.commitVote(pollId, secretVote2,  50);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt, true);
+
+        vm.prank(voter2);
+        pr.revealVote(pollId, salt2, false);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION());
+
+        pr.resolvePoll(pollId);
+
+        PollRegistry.Poll memory poll = pr.getPoll(pollId);
+
+        assertEq(poll.winnerAddress, challenger);
+        assertEq(poll.resolved, true);
+        assertEq(poll.passed, false);
+        assertEq(poll.rewardPool, 30);
+     }
+
+    function test_pollHasntEnded() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  1);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt, true);
+
+        vm.expectRevert("Poll has not ended");
+        pr.resolvePoll(pollId);
+    }
+
+    function testWithdrawBalance() public {
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  10);
+
+        uint salt2 = 420;
+        bytes32 secretVote2 = keccak256(abi.encodePacked(false, salt2));
+        vm.prank(voter2);
+        pr.commitVote(pollId, secretVote2,  5);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt, true);
+
+        vm.prank(voter2);
+        pr.revealVote(pollId, salt2, false);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION());
+
+        pr.resolvePoll(pollId);
+
+        assertEq(token.balanceOf(voter1), 90);
+
+        vm.prank(voter1);
+        pr.withdrawBalance(pollId);
+
+        assertEq(token.balanceOf(voter1), 105);
+
+        PollRegistry.Poll memory poll = pr.getPoll(pollId);
+
+        assertEq(pr.balances(pollId, voter1), 0);
+        assertEq(poll.winnerWithdrawalCount, 1);
+        assertEq(poll.withdrawnRewardAmount, 5);
+        
     }
 }

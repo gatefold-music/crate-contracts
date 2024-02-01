@@ -187,8 +187,8 @@ contract PollRegistry is ReentrancyGuard {
      * @dev Close poll and calculate reward pool
      * @param _pollId id of poll to resolve
      */
-    function resolvePoll(uint _pollId) public view {
-        Poll memory poll = polls[_pollId];
+    function resolvePoll(uint _pollId) public {
+        Poll storage poll = polls[_pollId];
         require(block.timestamp > poll.revealEndDate, "Poll has not ended");
 
         bool passed = hasPassed(_pollId);
@@ -205,7 +205,7 @@ contract PollRegistry is ReentrancyGuard {
      * @param _pollId id of poll to withdraw balance from
      */
     function withdrawBalance(uint _pollId) public nonReentrant {
-        Poll memory poll = polls[_pollId];
+        Poll storage poll = polls[_pollId];
 
         require(poll.resolved == true, "Poll has not ended");
         require(reveals[_pollId][msg.sender] == true, "User did not reveal vote");
