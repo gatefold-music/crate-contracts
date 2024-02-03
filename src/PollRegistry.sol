@@ -4,6 +4,8 @@ pragma solidity ^0.8.21;
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./Reward.sol";
+import {console2} from "forge-std/Test.sol";
+
 
 /*
  * @title Poll Registry
@@ -190,6 +192,7 @@ contract PollRegistry is ReentrancyGuard {
     function resolvePoll(uint _pollId) public {
         Poll storage poll = polls[_pollId];
         require(block.timestamp > poll.revealEndDate, "Poll has not ended");
+        require(!poll.resolved, "Poll has already been resolved");
 
         bool passed = hasPassed(_pollId);
         uint winnerPool = passed ? poll.votesFor : poll.votesAgainst;
@@ -223,6 +226,7 @@ contract PollRegistry is ReentrancyGuard {
         poll.winnerWithdrawalCount += 1;
 
         uint reward = Reward.rewardPoolShare(poll.rewardPool, amountToSend, stakedTotal);
+        console2.log(reward);
 
         poll.withdrawnRewardAmount += reward;
 
@@ -232,6 +236,8 @@ contract PollRegistry is ReentrancyGuard {
 
         // if everyone has withdrawn, send remnants to poll winner  
         if (voterTotal == poll.winnerWithdrawalCount && remnants > 0) {
+            poll.withdrawnRewardAmount += remnants;
+            poll.winnerWithdrawalCount += 1;
             ERC20(polls[_pollId].tokenAddress).transferFrom(address(this), poll.winnerAddress, remnants);
         } 
     }

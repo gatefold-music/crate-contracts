@@ -378,6 +378,28 @@ contract RewardTest is Test {
         pr.resolvePoll(pollId);
     }
 
+    function test_pollHasntAlreadyBeenResolved() public {
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  1);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt, true);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION());
+
+        pr.resolvePoll(pollId);
+
+        vm.expectRevert("Poll has already been resolved");
+        pr.resolvePoll(pollId);
+
+    }
+
     function testWithdrawBalance() public {
         uint pollId = pr.createPoll(address(token) ,proposer, challenger);
 
@@ -415,6 +437,285 @@ contract RewardTest is Test {
         assertEq(pr.balances(pollId, voter1), 0);
         assertEq(poll.winnerWithdrawalCount, 1);
         assertEq(poll.withdrawnRewardAmount, 5);
-        
+    }
+
+    function testWithdrawBalanceMultipleWinningVotersTenLosingVotes() public {
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  70);
+
+        uint salt2 = 420;
+        bytes32 secretVote2 = keccak256(abi.encodePacked(true, salt2));
+        vm.prank(voter2);
+        pr.commitVote(pollId, secretVote2,  30);
+
+        uint salt3 = 4444;
+        bytes32 secretVote3 = keccak256(abi.encodePacked(false, salt3));
+        vm.prank(voter3);
+        pr.commitVote(pollId, secretVote3,  10);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt, true);
+
+        vm.prank(voter2);
+        pr.revealVote(pollId, salt2, true);
+
+        vm.prank(voter3);
+        pr.revealVote(pollId, salt3, false);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION());
+
+        pr.resolvePoll(pollId);
+
+        assertEq(token.balanceOf(voter1), 30);
+        assertEq(token.balanceOf(voter2), 70);
+        assertEq(token.balanceOf(voter3), 90);
+
+        vm.prank(voter1);
+        pr.withdrawBalance(pollId);
+
+        assertEq(token.balanceOf(voter1), 107);
+
+
+        vm.prank(voter2);
+        pr.withdrawBalance(pollId);
+
+        assertEq(token.balanceOf(voter2), 103);
+
+        PollRegistry.Poll memory poll = pr.getPoll(pollId);
+
+        assertEq(pr.balances(pollId, voter2), 0);
+        assertEq(poll.winnerWithdrawalCount, 2);
+        assertEq(poll.withdrawnRewardAmount, 10);
+    }
+
+    function testWithdrawBalanceMultipleWinningVotersFiveLosingVotes() public {
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  70);
+
+        uint salt2 = 420;
+        bytes32 secretVote2 = keccak256(abi.encodePacked(true, salt2));
+        vm.prank(voter2);
+        pr.commitVote(pollId, secretVote2,  30);
+
+        uint salt3 = 4444;
+        bytes32 secretVote3 = keccak256(abi.encodePacked(false, salt3));
+        vm.prank(voter3);
+        pr.commitVote(pollId, secretVote3,  5);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt, true);
+
+        vm.prank(voter2);
+        pr.revealVote(pollId, salt2, true);
+
+        vm.prank(voter3);
+        pr.revealVote(pollId, salt3, false);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION());
+
+        pr.resolvePoll(pollId);
+
+        assertEq(token.balanceOf(voter1), 30);
+        assertEq(token.balanceOf(voter2), 70);
+        assertEq(token.balanceOf(voter3), 95);
+
+        vm.prank(voter1);
+        pr.withdrawBalance(pollId);
+
+        assertEq(token.balanceOf(voter1), 103);
+
+        vm.prank(voter2);
+        pr.withdrawBalance(pollId);
+
+        assertEq(token.balanceOf(voter2), 101);
+
+        PollRegistry.Poll memory poll = pr.getPoll(pollId);
+
+        assertEq(pr.balances(pollId, voter2), 0);
+        assertEq(poll.winnerWithdrawalCount, 3);
+        assertEq(poll.withdrawnRewardAmount, 5);
+
+
+        assertEq(token.balanceOf(proposer), 101);
+    }
+
+    function test_Withdraw_pollHasNotEnded() public {
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  70);
+
+        uint salt2 = 420;
+        bytes32 secretVote2 = keccak256(abi.encodePacked(true, salt2));
+        vm.prank(voter2);
+        pr.commitVote(pollId, secretVote2,  30);
+
+        uint salt3 = 4444;
+        bytes32 secretVote3 = keccak256(abi.encodePacked(false, salt3));
+        vm.prank(voter3);
+        pr.commitVote(pollId, secretVote3,  10);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt, true);
+
+        vm.prank(voter2);
+        pr.revealVote(pollId, salt2, true);
+
+        vm.prank(voter3);
+        pr.revealVote(pollId, salt3, false);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION());
+
+        vm.prank(voter1);
+        vm.expectRevert("Poll has not ended");
+        pr.withdrawBalance(pollId);
+    }
+
+    function test_Withdraw_hasNotRevealedVote() public {
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  70);
+
+        uint salt2 = 420;
+        bytes32 secretVote2 = keccak256(abi.encodePacked(true, salt2));
+        vm.prank(voter2);
+        pr.commitVote(pollId, secretVote2,  30);
+
+        uint salt3 = 4444;
+        bytes32 secretVote3 = keccak256(abi.encodePacked(false, salt3));
+        vm.prank(voter3);
+        pr.commitVote(pollId, secretVote3,  10);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter2);
+        pr.revealVote(pollId, salt2, true);
+
+        vm.prank(voter3);
+        pr.revealVote(pollId, salt3, false);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION());
+
+        pr.resolvePoll(pollId);
+
+        vm.prank(voter1);
+        vm.expectRevert("User did not reveal vote");
+        pr.withdrawBalance(pollId);
+    }
+
+    function test_Withdraw_didNotVoteForWinner() public {
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  70);
+
+        uint salt2 = 420;
+        bytes32 secretVote2 = keccak256(abi.encodePacked(true, salt2));
+        vm.prank(voter2);
+        pr.commitVote(pollId, secretVote2,  30);
+
+        uint salt3 = 4444;
+        bytes32 secretVote3 = keccak256(abi.encodePacked(false, salt3));
+        vm.prank(voter3);
+        pr.commitVote(pollId, secretVote3,  10);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt, true);
+
+        vm.prank(voter2);
+        pr.revealVote(pollId, salt2, true);
+
+        vm.prank(voter3);
+        pr.revealVote(pollId, salt3, false);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION());
+
+        pr.resolvePoll(pollId);
+
+        PollRegistry.Poll memory poll = pr.getPoll(pollId);
+
+        assertEq(poll.totalDeposits, 110);
+        assertEq(poll.rewardPool, 10);
+
+        vm.prank(voter3);
+        vm.expectRevert("User did not vote for winner party");
+        pr.withdrawBalance(pollId);
+    }
+
+    function test_Withdraw_hasNoBalance() public {
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+        vm.prank(voter1);
+        pr.commitVote(pollId, secretVote,  70);
+
+        uint salt2 = 420;
+        bytes32 secretVote2 = keccak256(abi.encodePacked(true, salt2));
+        vm.prank(voter2);
+        pr.commitVote(pollId, secretVote2,  30);
+
+        uint salt3 = 4444;
+        bytes32 secretVote3 = keccak256(abi.encodePacked(false, salt3));
+        vm.prank(voter3);
+        pr.commitVote(pollId, secretVote3,  10);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + 1);
+
+        vm.prank(voter1);
+        pr.revealVote(pollId, salt, true);
+
+        vm.prank(voter2);
+        pr.revealVote(pollId, salt2, true);
+
+        vm.prank(voter3);
+        pr.revealVote(pollId, salt3, false);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION());
+
+        pr.resolvePoll(pollId);
+
+        vm.prank(voter1);
+        pr.withdrawBalance(pollId);
+
+        vm.prank(voter1);
+        vm.expectRevert("User has no balance to withdraw");
+        pr.withdrawBalance(pollId);
+    }
+
+     function test_NoOneVoted() public {
+        uint pollId = pr.createPoll(address(token) ,proposer, challenger);
+
+        vm.warp(block.timestamp + pr.COMMIT_DURATION() + pr.REVEAL_DURATION() + 1);
+
+        pr.resolvePoll(pollId);
+
+        PollRegistry.Poll memory poll = pr.getPoll(pollId);
+
+        assertEq(poll.totalDeposits, 0);
+        assertEq(poll.passed, false);
     }
 }
