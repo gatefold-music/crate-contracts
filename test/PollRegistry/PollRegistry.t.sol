@@ -6,7 +6,7 @@ import "../../src/PollRegistry.sol";
 import "../../src/CrateToken.sol";
 
 
-contract RewardTest is Test {
+contract PollRegistryTest is Test {
     uint public constant VOTE_QUORUM = 50; // majority wins
     uint public constant COMMIT_DURATION = 86400; // one day 
     uint public constant REVEAL_DURATION = 86400; // one day 

@@ -110,7 +110,7 @@ contract Crate is Ownable {
     }
 
     modifier verifyMinDeposit(uint _amount) {
-        require(_amount >= minDeposit, "Does not meet crate minimum");
+        require(_amount >= minDeposit, "Amount does not meet crate minimum");
         _;
     }
 
@@ -454,9 +454,6 @@ contract Crate is Ownable {
             } 
         } 
     }
-    // function encode(bytes32 _hash) public exists(_hash) isListed(_hash) notSealed {
-        
-    // }
 
     /*
      *
@@ -544,6 +541,10 @@ contract Crate is Ownable {
         positions[_recordHash].next = next;
 
         emit SortOrderUpdated(_recordHash, _prevHash);
+    }
+
+    function getRecord(bytes32 _recordHash) public view returns (Record memory record) {
+        return records[_recordHash];
     }
 
     /*
