@@ -16,6 +16,7 @@ contract CrateTest is Test {
     address public spenderAddress = address(0x69420);
 
     event RecordAdded(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint listExpiry, bool isPrivate);
+    event Application(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint applicationExpiry, bool isPrivate);
 
     function setUp() public {
         pollRegistry = new PollRegistry();
@@ -117,6 +118,70 @@ contract CrateTest is Test {
         vm.expectRevert("Exceeds max length");
          vm.prank(spenderAddress);
         crate.propose(hashedValue2, minDeposit2, value2);
+    }
+
+    function testProposeWithAppDuration() public {
+        uint NEW_APP_DURATION = 86400; // one day
+
+        vm.prank(ownerAddress);
+        crate.updateAppDuration(NEW_APP_DURATION);
+
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+
+        vm.expectEmit(true, true, true, true);
+        emit Application(hashedValue, minDeposit, value, spenderAddress, block.timestamp + NEW_APP_DURATION, false);
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        Crate.Record memory record = crate.getRecord(hashedValue);
+
+        assertEq(record.owner, spenderAddress);
+        assertEq(record.deposit, minDeposit);
+        assertEq(record.data, value);
+        assertEq(record.doesExist, true);
+        assertEq(record.tokenAddress, address(crateToken));
+        assertEq(record.listed, false);
+        assertEq(crate.listLength(), 0);
+
+        vm.warp(block.timestamp + NEW_APP_DURATION + 1);
+        vm.expectEmit(true, true, true, true);
+        emit RecordAdded(hashedValue, minDeposit, value, spenderAddress, 0, false);
+        crate.resolveApplication(hashedValue);
+
+        Crate.Record memory recordAgain = crate.getRecord(hashedValue);
+        assertEq(recordAgain.listed, true);
+        assertEq(recordAgain.listingExpiry, 0);
+    }
+
+    function testProposeWithListDuration() public {
+        uint NEW_LIST_DURATION = 86400; // one day
+
+        vm.prank(ownerAddress);
+        crate.updateListDuration(NEW_LIST_DURATION);
+
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        uint ts = block.timestamp + NEW_LIST_DURATION;
+        vm.expectEmit(true, true, true, true);
+        emit RecordAdded(hashedValue, minDeposit, value, spenderAddress, ts, false);
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        Crate.Record memory record = crate.getRecord(hashedValue);
+
+        assertEq(record.owner, spenderAddress);
+        assertEq(record.deposit, minDeposit);
+        assertEq(record.data, value);
+        assertEq(record.doesExist, true);
+        assertEq(record.tokenAddress, address(crateToken));
+        assertEq(record.listed, true);
+        assertEq(record.listingExpiry, ts);
+        assertEq(crate.listLength(), 1);
     }
 
 }

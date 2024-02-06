@@ -310,7 +310,7 @@ contract Crate is Ownable {
      * @param _recordHash keccak256 hash of record identifier
      */
     function resolveApplication(bytes32 _recordHash) public {
-        Record memory record = records[_recordHash];
+        Record storage record = records[_recordHash];
         require(record.doesExist, "Record does not exist");
         require(!record.listed, "Record already allow listed");
         require(record.challengeId == 0, "Challenge will resolve listing");
@@ -318,8 +318,9 @@ contract Crate is Ownable {
         require(listLength + 1 <= maxListLength, "Exceeds max length"); 
         
         record.listed = true;
-        uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-        emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, record.isPrivate);
+        uint listingExpiry = listDuration > 0 ? block.timestamp + listDuration : 0;
+        record.listingExpiry = listingExpiry;
+        emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, listingExpiry, record.isPrivate);
     }
 
     /*
@@ -563,10 +564,11 @@ contract Crate is Ownable {
         
 
         if (isBeingListed) {
-            uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
+            uint listingExpiry = listDuration > 0 ? block.timestamp + listDuration : 0;
             record.listed = true;
             listLength += 1;
-            emit RecordAdded(_hash, _amount, _data, _sender, expiry, isPrivate);
+            record.listingExpiry = listingExpiry;
+            emit RecordAdded(_hash, _amount, _data, _sender, listingExpiry, isPrivate);
         } else {
             record.applicationExpiry = block.timestamp + appDuration;
             emit Application(_hash, _amount, _data, _sender, record.applicationExpiry, isPrivate);
