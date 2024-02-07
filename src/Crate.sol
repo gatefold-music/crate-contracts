@@ -309,12 +309,13 @@ contract Crate is Ownable {
      * @notice record applicationExpiry should not be zero
      * @param _recordHash keccak256 hash of record identifier
      */
-    function resolveApplication(bytes32 _recordHash) public {
+    function resolveApplication(bytes32 _recordHash) public doesExist(_recordHash) {
         Record storage record = records[_recordHash];
-        require(record.doesExist, "Record does not exist");
         require(!record.listed, "Record already allow listed");
         require(record.challengeId == 0, "Challenge will resolve listing");
-        require(record.applicationExpiry > 0 && block.timestamp > record.applicationExpiry, "Record has no Expiry or has not expired");
+        require(record.applicationExpiry > 0 && block.timestamp > record.applicationExpiry, "Application duration has not expired");
+        console2.log(listLength);
+        console2.log(maxListLength);
         require(listLength + 1 <= maxListLength, "Exceeds max length"); 
         
         record.listed = true;
@@ -327,9 +328,8 @@ contract Crate is Ownable {
      * @dev Remove an owned or expired record
      * @param _recordHash keccak256 hash of record identifier
      */
-    function removeRecord(bytes32 _recordHash) public {
+    function removeRecord(bytes32 _recordHash) public doesExist(_recordHash) {
         Record memory record = records[_recordHash];
-        require(record.doesExist, "Record does not exist");
         require(record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true), "Record is in challenged state");
         require(record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry ), "Only record owner or successful challenge can remove record from list");
         

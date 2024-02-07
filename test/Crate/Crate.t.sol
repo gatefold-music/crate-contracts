@@ -14,6 +14,7 @@ contract CrateTest is Test {
     Crate public crate;
     address public ownerAddress = address(0x12345);
     address public spenderAddress = address(0x69420);
+    address public challengerAddress = address(0x44444);
 
     event RecordAdded(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint listExpiry, bool isPrivate);
     event Application(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint applicationExpiry, bool isPrivate);
@@ -30,7 +31,13 @@ contract CrateTest is Test {
         vm.prank(ownerAddress);
         crateToken.mint(spenderAddress, 1000);
 
+        vm.prank(ownerAddress);
+        crateToken.mint(challengerAddress, 1000);
+
         vm.prank(spenderAddress);
+        crateToken.maxApproval(address(crate));
+
+        vm.prank(challengerAddress);
         crateToken.maxApproval(address(crate));
     }
 
@@ -131,6 +138,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
 
+        // test application proposal
         vm.expectEmit(true, true, true, true);
         emit Application(hashedValue, minDeposit, value, spenderAddress, block.timestamp + NEW_APP_DURATION, false);
         vm.prank(spenderAddress);
@@ -146,6 +154,7 @@ contract CrateTest is Test {
         assertEq(record.listed, false);
         assertEq(crate.listLength(), 0);
 
+        // test resolve application
         vm.warp(block.timestamp + NEW_APP_DURATION + 1);
         vm.expectEmit(true, true, true, true);
         emit RecordAdded(hashedValue, minDeposit, value, spenderAddress, 0, false);
@@ -155,6 +164,106 @@ contract CrateTest is Test {
         assertEq(recordAgain.listed, true);
         assertEq(recordAgain.listingExpiry, 0);
     }
+
+    function test_ResolveApp_recordDoesntExist() public {
+        uint NEW_APP_DURATION = 86400; // one day
+
+        vm.prank(ownerAddress);
+        crate.updateAppDuration(NEW_APP_DURATION);
+
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+
+        vm.expectRevert("Record does not exist");
+        vm.prank(spenderAddress);
+        crate.resolveApplication(hashedValue);
+    }
+
+    function test_ResolveApp_recordAlreadyAllowListed() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.expectRevert("Record already allow listed");
+        vm.prank(spenderAddress);
+        crate.resolveApplication(hashedValue);
+    }
+
+    function test_ResolveApp_recordIsChallenged() public {
+        uint NEW_APP_DURATION = 86400; // one day
+
+        vm.prank(ownerAddress);
+        crate.updateAppDuration(NEW_APP_DURATION);
+
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.prank(challengerAddress);
+        crate.challenge(hashedValue, 10, challengerAddress);
+
+        vm.expectRevert("Challenge will resolve listing");
+        vm.prank(spenderAddress);
+        crate.resolveApplication(hashedValue);
+    }
+
+    function test_ResolveApp_applicationHasNotExpired() public {
+        uint NEW_APP_DURATION = 86400; // one day
+
+        vm.prank(ownerAddress);
+        crate.updateAppDuration(NEW_APP_DURATION);
+
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.expectRevert("Application duration has not expired");
+        vm.prank(spenderAddress);
+        crate.resolveApplication(hashedValue);
+    }
+
+    function test_ResolveApp_listLengthReached() public {
+        vm.prank(ownerAddress);
+        crate.updateMaxLength(1);
+
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        uint NEW_APP_DURATION = 86400; // one day
+
+        vm.prank(ownerAddress);
+        crate.updateAppDuration(NEW_APP_DURATION);
+
+        string memory value2 = "A fake list item 2";
+        bytes32 hashedValue2 = bytes32("A fake list item 2");
+        uint minDeposit2 = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue2, minDeposit2, value2);
+
+        vm.warp(block.timestamp + NEW_APP_DURATION + 1);
+
+        vm.expectRevert("Exceeds max length");
+        vm.prank(spenderAddress);
+        crate.resolveApplication(hashedValue2);
+    }
+
+
 
     function testProposeWithListDuration() public {
         uint NEW_LIST_DURATION = 86400; // one day
