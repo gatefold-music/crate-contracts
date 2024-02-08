@@ -18,6 +18,8 @@ contract CrateTest is Test {
 
     event RecordAdded(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint listExpiry, bool isPrivate);
     event Application(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint applicationExpiry, bool isPrivate);
+    event RecordRemoved(bytes32 indexed recordHash);
+
 
     function setUp() public {
         pollRegistry = new PollRegistry();
@@ -38,6 +40,9 @@ contract CrateTest is Test {
         crateToken.maxApproval(address(crate));
 
         vm.prank(challengerAddress);
+        crateToken.maxApproval(address(crate));
+
+        vm.prank(address(crate));
         crateToken.maxApproval(address(crate));
     }
 
@@ -291,6 +296,96 @@ contract CrateTest is Test {
         assertEq(record.listed, true);
         assertEq(record.listingExpiry, ts);
         assertEq(crate.listLength(), 1);
+    }
+
+    function testRemoveRecord() public {
+        uint NEW_LIST_DURATION = 86400; // one day
+
+        vm.prank(ownerAddress);
+        crate.updateListDuration(NEW_LIST_DURATION);
+
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        uint ts = block.timestamp + NEW_LIST_DURATION;
+        vm.expectEmit(true, true, true, true);
+        emit RecordAdded(hashedValue, minDeposit, value, spenderAddress, ts, false);
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        Crate.Record memory record = crate.getRecord(hashedValue);
+        assertEq(record.listingExpiry, ts);
+        assertEq(crate.listLength(), 1);
+
+        vm.warp(ts + 1);
+
+        vm.expectEmit(true, true, true, true);
+        emit RecordRemoved(hashedValue);
+        crate.removeRecord(hashedValue);
+
+        Crate.Record memory recordAfter = crate.getRecord(hashedValue);
+        assertEq(recordAfter.doesExist, false);
+        assertEq(crate.listLength(), 0);
+    }
+
+    function test_Remove_isChallenged() public {
+        uint NEW_LIST_DURATION = 86400; // one day
+
+        vm.prank(ownerAddress);
+        crate.updateListDuration(NEW_LIST_DURATION);
+
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        uint ts = block.timestamp + NEW_LIST_DURATION;
+        vm.expectEmit(true, true, true, true);
+        emit RecordAdded(hashedValue, minDeposit, value, spenderAddress, ts, false);
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.prank(challengerAddress);
+        crate.challenge(hashedValue, 10, challengerAddress);
+
+        Crate.Record memory record = crate.getRecord(hashedValue);
+        assertEq(record.listingExpiry, ts);
+        assertEq(crate.listLength(), 1);
+
+        vm.warp(ts + 1);
+
+        vm.expectRevert("Record is in challenged state");
+        crate.removeRecord(hashedValue);
+    }
+
+    function test_Remove_cannotRemove() public {
+        uint NEW_LIST_DURATION = 86400; // one day
+
+        vm.prank(ownerAddress);
+        crate.updateListDuration(NEW_LIST_DURATION);
+
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        uint ts = block.timestamp + NEW_LIST_DURATION;
+
+        vm.expectEmit(true, true, true, true);
+        emit RecordAdded(hashedValue, minDeposit, value, spenderAddress, ts, false);
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        Crate.Record memory record = crate.getRecord(hashedValue);
+        assertEq(record.listingExpiry, ts);
+        assertEq(crate.listLength(), 1);
+
+        vm.expectRevert("Record can only be removed by owner, challenge or if expired");
+        crate.removeRecord(hashedValue);
+
+        vm.warp(ts - 1);
+
+        vm.expectRevert("Record can only be removed by owner, challenge or if expired");
+        crate.removeRecord(hashedValue);
     }
 
 }

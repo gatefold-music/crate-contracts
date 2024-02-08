@@ -331,7 +331,7 @@ contract Crate is Ownable {
     function removeRecord(bytes32 _recordHash) public doesExist(_recordHash) {
         Record memory record = records[_recordHash];
         require(record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true), "Record is in challenged state");
-        require(record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry ), "Only record owner or successful challenge can remove record from list");
+        require(record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry ), "Record can only be removed by owner, challenge or if expired");
         
         require(ERC20(record.tokenAddress).transferFrom(address(this), record.owner, record.deposit), "Tokens failed to transfer.");
 
