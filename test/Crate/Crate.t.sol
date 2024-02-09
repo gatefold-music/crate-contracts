@@ -19,7 +19,7 @@ contract CrateTest is Test {
     event RecordAdded(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint listExpiry, bool isPrivate);
     event Application(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint applicationExpiry, bool isPrivate);
     event RecordRemoved(bytes32 indexed recordHash);
-
+    event Challenge(bytes32 indexed recordHash, uint challengeId, address indexed challenger);
 
     function setUp() public {
         pollRegistry = new PollRegistry();
@@ -386,6 +386,91 @@ contract CrateTest is Test {
 
         vm.expectRevert("Record can only be removed by owner, challenge or if expired");
         crate.removeRecord(hashedValue);
+    }
+
+    function testChallenge() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.expectEmit(true, true, true, true);
+        emit Challenge(hashedValue, 1, challengerAddress);
+        vm.prank(challengerAddress);
+        uint pollId = crate.challenge(hashedValue, 10, challengerAddress);
+
+        Crate.Record memory record = crate.getRecord(hashedValue);
+        assertEq(record.challengeId, pollId);
+        assertEq(record.challenger, challengerAddress);
+        assertEq(record.challengerPayoutAddress, challengerAddress);
+        assertEq(record.challengeDeposit, 10);
+    }
+
+    function test_Challenge_crateIsSealed() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.prank(ownerAddress);
+        crate.sealCrate();
+
+        vm.expectRevert("Crate has been sealed close");
+        vm.prank(challengerAddress);
+        crate.challenge(hashedValue, 10, challengerAddress);
+    }
+
+    function test_Challenge_doesNotExist() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.expectRevert("Record does not exist");
+        vm.prank(challengerAddress);
+        crate.challenge(hashedValue, 10, challengerAddress);
+    }
+
+    function test_Challenge_InsufficientBalance() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.expectRevert("Record does not exist");
+        vm.prank(challengerAddress);
+        crate.challenge(hashedValue, 2000, challengerAddress);
+    }
+
+    function test_Challenge_InsufficientStake() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 20;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.expectRevert("Not enough stake for application.");
+        vm.prank(challengerAddress);
+        crate.challenge(hashedValue, 10, challengerAddress);
+    }
+
+    function test_Challenge_AlreadyChallenged() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.prank(challengerAddress);
+        crate.challenge(hashedValue, 10, challengerAddress);
+
+        vm.expectRevert("Record has already been challenged.");
+        vm.prank(challengerAddress);
+        crate.challenge(hashedValue, 10, challengerAddress);
     }
 
 }
