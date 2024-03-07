@@ -1,3 +1,15 @@
+TODO:
+combine config 
+combine proposal
+remove erc20 // add address
+remove poll registry // add address
+add single crate config
+
+
+
+///////////////////////
+
+
 
 cleanup (refactor)
 

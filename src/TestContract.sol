@@ -5,6 +5,7 @@ import "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 
 contract NFT is ERC721 {
     uint256 public currentTokenId;
+    address public messageSender;
 
     constructor() ERC721("NFT Name", "NFT") {}
 
@@ -12,6 +13,10 @@ contract NFT is ERC721 {
         uint256 newItemId = ++currentTokenId;
         _safeMint(recipient, newItemId);
         return newItemId;
+    }
+
+    function updateSender(address recipient) public {
+        messageSender = msg.sender;
     }
 }
 

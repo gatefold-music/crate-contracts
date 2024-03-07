@@ -15,11 +15,13 @@ contract CrateTest is Test {
     address public ownerAddress = address(0x12345);
     address public spenderAddress = address(0x69420);
     address public challengerAddress = address(0x44444);
+    address public voterAddress = address(0x77777);
 
     event RecordAdded(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint listExpiry, bool isPrivate);
     event Application(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint applicationExpiry, bool isPrivate);
     event RecordRemoved(bytes32 indexed recordHash);
     event Challenge(bytes32 indexed recordHash, uint challengeId, address indexed challenger);
+    event ChallengeSucceeded(bytes32 indexed recordHash);
 
     function setUp() public {
         pollRegistry = new PollRegistry();
@@ -36,6 +38,9 @@ contract CrateTest is Test {
         vm.prank(ownerAddress);
         crateToken.mint(challengerAddress, 1000);
 
+        vm.prank(ownerAddress);
+        crateToken.mint(voterAddress, 1000);
+
         vm.prank(spenderAddress);
         crateToken.maxApproval(address(crate));
 
@@ -44,6 +49,12 @@ contract CrateTest is Test {
 
         vm.prank(address(crate));
         crateToken.maxApproval(address(crate));
+
+        vm.prank(address(voterAddress));
+        crateToken.maxApproval(address(crate));
+
+        vm.prank(address(voterAddress));
+        crateToken.maxApproval(address(pollRegistry));
     }
 
     function testCreateCrate() public {
@@ -54,6 +65,8 @@ contract CrateTest is Test {
         assertEq(crate.listDuration(), 0);
         assertEq(crate.listLength(), 0);
         assertEq(crate.maxListLength(), type(uint256).max);
+
+        assertEq(address(crate.token()), address(crateToken));
 
         assertEq(address(crate.token()), address(crateToken));
         assertEq(address(crate.pollRegistry()), address(pollRegistry));
@@ -473,4 +486,123 @@ contract CrateTest is Test {
         crate.challenge(hashedValue, 10, challengerAddress);
     }
 
+    function testChallengeResolve() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.prank(challengerAddress);
+        uint pollId = crate.challenge(hashedValue, 10, challengerAddress);
+
+        Crate.Record memory r = crate.getRecord(hashedValue);
+        assertEq(r.challengeId, pollId);
+
+        vm.warp(block.timestamp + pollRegistry.COMMIT_DURATION() + pollRegistry.REVEAL_DURATION() + 1);
+
+        pollRegistry.resolvePoll(pollId);
+
+        vm.expectEmit(true, true, true, true);
+        emit ChallengeSucceeded(hashedValue);
+        crate.resolveChallenge(hashedValue);
+    }
+
+    function testChallengeResolve_noRecord() public {
+        bytes32 hashedValue = bytes32("A fake list item");
+
+        vm.expectRevert("Record does not exist");
+        crate.resolveChallenge(hashedValue);
+    }
+
+
+    function testChallengeResolve_noChallenge() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.expectRevert("No challenge for record");
+        crate.resolveChallenge(hashedValue);
+    }
+
+    function testChallengeResolve_challengeAlreadyResolved() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.prank(challengerAddress);
+        uint pollId = crate.challenge(hashedValue, 10, challengerAddress);
+
+        uint salt = 69;
+        bytes32 secretVote = keccak256(abi.encodePacked(true, salt));
+
+        vm.prank(voterAddress);
+        pollRegistry.commitVote(pollId, secretVote, 10);
+
+        vm.warp(block.timestamp + pollRegistry.COMMIT_DURATION() + 1);
+
+        vm.prank(voterAddress);
+        pollRegistry.revealVote(pollId, salt, true);
+
+        vm.warp(block.timestamp + pollRegistry.COMMIT_DURATION() + pollRegistry.REVEAL_DURATION() + 1);
+
+        pollRegistry.resolvePoll(pollId);
+
+        crate.resolveChallenge(hashedValue);
+
+        vm.expectRevert("Challenge has already been resolved");
+        crate.resolveChallenge(hashedValue);
+    }
+
+    function testChallengeResolve_pollHasNotEnded() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+        vm.prank(challengerAddress);
+        uint pollId = crate.challenge(hashedValue, 10, challengerAddress);
+
+        vm.expectRevert("Poll has not ended");
+        crate.resolveChallenge(hashedValue);
+    }
+
+    function testChallengeResolve_ListLengthReached() public {
+        string memory value = "A fake list item";
+        bytes32 hashedValue = bytes32("A fake list item");
+        uint minDeposit = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValue, minDeposit, value);
+
+
+
+        string memory valueTwo = "Another fake list item";
+        bytes32 hashedValueTwo = bytes32("Another fake list item");
+        uint minDepositTwo = 10;
+
+        vm.prank(spenderAddress);
+        crate.propose(hashedValueTwo, minDepositTwo, valueTwo);
+
+        vm.prank(challengerAddress);
+        uint pollId = crate.challenge(hashedValue, 10, challengerAddress);
+
+        vm.warp(block.timestamp + pollRegistry.COMMIT_DURATION() + pollRegistry.REVEAL_DURATION() + 1);
+
+        vm.prank(ownerAddress);
+
+        pollRegistry.resolvePoll(pollId);
+
+        vm.expectRevert("Poll has not ended");
+        crate.resolveChallenge(hashedValue);
+    }
 }

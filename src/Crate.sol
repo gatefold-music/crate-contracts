@@ -4,6 +4,7 @@ pragma solidity ^0.8.21;
 import {PollRegistry} from "./PollRegistry.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "./VerifySignature.sol";
 import { console2} from "forge-std/Test.sol";
 
@@ -266,42 +267,43 @@ contract Crate is Ownable {
      * @notice If list length has been reached, winning address can still call this but adding entry to list with be skipped
      * @param _recordHash keccak256 hash of record identifier
      */
-    function resolveChallenge(bytes32 _recordHash) public {
+    function resolveChallenge(bytes32 _recordHash) public doesExist(_recordHash) {
         Record storage record = records[_recordHash];
         require(record.challengeId > 0, "No challenge for record");
         require(record.resolved == false, "Challenge has already been resolved");
         require(pollRegistry.hasResolved(record.challengeId) == true, "Poll has not ended");
-        address winningOwner = pollRegistry.hasPassed(record.challengeId) ? record.owner : record.challenger;
-        require(listLength + 1 <= maxListLength || msg.sender == winningOwner, "Max length reached or not authorized to skip list addition");
 
-        address recordOwner = record.owner;
-        uint challengeId = record.challengeId;
+        bool challengeFailed = pollRegistry.hasPassed(record.challengeId);
+        address winningOwner = challengeFailed ? record.owner : record.challenger;
+        bool shouldBeAdded = challengeFailed && !record.listed;
+        bool listHasSpace = listLength + 1 <= maxListLength;
+        require(!shouldBeAdded || (shouldBeAdded && (listHasSpace || msg.sender == winningOwner)), "Max length reached or not authorized to skip list addition");
+
         uint challengeDeposit = record.challengeDeposit;
-        uint rewards = 0;
+ 
+        address winner = challengeFailed ? record.owner : record.challengerPayoutAddress;
+        uint rewards = challengeFailed ? record.challengeDeposit : record.deposit;
 
         record.resolved = true;
 
-        address winner;
+        require(IERC20(record.tokenAddress).transfer(winner, rewards), "Token transfer failed");
 
-        if (pollRegistry.hasPassed(challengeId)) { // challenge failed 
-            winner = recordOwner;
-            rewards = challengeDeposit;
-            emit ChallengeFailed(_recordHash, challengeId, rewards, winner);
+        if (challengeFailed) { 
+            emit ChallengeFailed(_recordHash, record.challengeId, rewards, winner);
 
-            if (!record.listed) {
+            if (!record.listed && listHasSpace) {
                 uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
                 emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, record.isPrivate);
+                listLength += 1;
                 record.listed = true;
             }
-        } else { // challenge succeeded
+            if (!record.listed && !listHasSpace) {
+                 _remove(_recordHash);
+            }
+        } else { 
             emit ChallengeSucceeded(_recordHash);
-            winner = record.challengerPayoutAddress;
-            rewards = record.deposit;
-
             _remove(_recordHash);
         }
-
-        require(ERC20(record.tokenAddress).transfer(winner, rewards));
     }
 
     /*
@@ -314,8 +316,6 @@ contract Crate is Ownable {
         require(!record.listed, "Record already allow listed");
         require(record.challengeId == 0, "Challenge will resolve listing");
         require(record.applicationExpiry > 0 && block.timestamp > record.applicationExpiry, "Application duration has not expired");
-        console2.log(listLength);
-        console2.log(maxListLength);
         require(listLength + 1 <= maxListLength, "Exceeds max length"); 
         
         record.listed = true;
