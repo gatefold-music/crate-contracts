@@ -3,7 +3,7 @@ pragma solidity ^0.8.21;
 
 import "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 
-contract NFT is ERC721 {
+contract TestContract is ERC721 {
     uint256 public currentTokenId;
     address public messageSender;
 
@@ -15,8 +15,9 @@ contract NFT is ERC721 {
         return newItemId;
     }
 
-    function updateSender(address recipient) public {
+    function updateSender() public {
         messageSender = msg.sender;
     }
+
 }
 

@@ -66,9 +66,9 @@ contract CrateTest is Test {
         assertEq(crate.listLength(), 0);
         assertEq(crate.maxListLength(), type(uint256).max);
 
-        assertEq(address(crate.token()), address(crateToken));
+        assertEq(crate.tokenAddress(), address(crateToken));
 
-        assertEq(address(crate.token()), address(crateToken));
+        assertEq(crate.tokenAddress(), address(crateToken));
         assertEq(address(crate.pollRegistry()), address(pollRegistry));
     }
     function testPropose() public {
@@ -525,7 +525,7 @@ contract CrateTest is Test {
         vm.prank(spenderAddress);
         crate.propose(hashedValue, minDeposit, value);
 
-        vm.expectRevert("No challenge for record");
+        vm.expectRevert("Has no open challenge");
         crate.resolveChallenge(hashedValue);
     }
 
@@ -557,7 +557,7 @@ contract CrateTest is Test {
 
         crate.resolveChallenge(hashedValue);
 
-        vm.expectRevert("Challenge has already been resolved");
+        vm.expectRevert("Has no open challenge");
         crate.resolveChallenge(hashedValue);
     }
 
@@ -583,8 +583,6 @@ contract CrateTest is Test {
 
         vm.prank(spenderAddress);
         crate.propose(hashedValue, minDeposit, value);
-
-
 
         string memory valueTwo = "Another fake list item";
         bytes32 hashedValueTwo = bytes32("Another fake list item");

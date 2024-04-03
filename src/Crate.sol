@@ -3,7 +3,6 @@ pragma solidity ^0.8.21;
 
 import {PollRegistry} from "./PollRegistry.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "./VerifySignature.sol";
 import { console2} from "forge-std/Test.sol";
@@ -16,7 +15,7 @@ contract Crate is Ownable {
     uint public minDeposit;
     uint public appDuration;
     uint public listDuration;
-    ERC20 public token;
+    address public tokenAddress;
     PollRegistry public pollRegistry;
     uint8 public constant BATCH_MAX = 51; 
     bool public isSealed;
@@ -79,7 +78,7 @@ contract Crate is Ownable {
 
     constructor (string memory _name, string memory _description, address _token, address _voting, uint _minDeposit) {
         require(_token != address(0), "Token address should not be zero address");
-        token = ERC20(_token);
+        tokenAddress = _token;
         pollRegistry = PollRegistry(_voting);
         name = _name;
         description = _description;
@@ -106,7 +105,7 @@ contract Crate is Ownable {
     }
 
     modifier sufficientBalance(uint _amount, address _sender) {
-        require(token.balanceOf(_sender) >= _amount, "Insufficient token balance");
+        require(IERC20(tokenAddress).balanceOf(_sender) >= _amount, "Insufficient token balance");
         _;
     }
 
@@ -140,6 +139,7 @@ contract Crate is Ownable {
         require(records[_hash].challengeId == 0 || (records[_hash].challengeId > 0 && records[_hash].resolved == true), "Record is in challenged state");
         _;
     }
+
     /*
      *
      * CORE
@@ -163,7 +163,7 @@ contract Crate is Ownable {
     {
         bool isBeingListed = appDuration == 0 ? true : false;
         require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
-        require(!isBeingListed || token.transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
+        require(!isBeingListed || IERC20(tokenAddress).transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
 
         _add(_recordHash, _amount, _data, msg.sender, isBeingListed, false);
     }
@@ -182,7 +182,7 @@ contract Crate is Ownable {
 
         bool isBeingListed = appDuration == 0 ? true : false;
         require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
-        require(!isBeingListed || token.transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
+        require(!isBeingListed || IERC20(tokenAddress).transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
 
         _add(_recordHash, _amount, _data, msg.sender, isBeingListed, false);
     }
@@ -202,7 +202,7 @@ contract Crate is Ownable {
 
         bool isBeingListed = appDuration == 0 ? true : false;
         require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
-        require(!isBeingListed || token.transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
+        require(!isBeingListed || IERC20(tokenAddress).transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
 
         records[_secretHash].isPrivate = true;
         records[_secretHash].oracleAddress = verifierAddress;
@@ -243,7 +243,7 @@ contract Crate is Ownable {
         returns (uint challengeID) {
 
         Record storage record = records[_recordHash];
-        require(ERC20(record.tokenAddress).balanceOf(msg.sender) >= _amount, "Insufficient token balance");
+        require(IERC20(record.tokenAddress).balanceOf(msg.sender) >= _amount, "Insufficient token balance");
         require(_amount >= record.deposit, "Not enough stake for application.");
         require(record.challengeId == 0, "Record has already been challenged.");
 
@@ -255,7 +255,7 @@ contract Crate is Ownable {
         record.challengerPayoutAddress = payoutAddress;
         record.challengeDeposit += _amount;
 
-        require(ERC20(record.tokenAddress).transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
+        require(IERC20(record.tokenAddress).transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
 
         emit Challenge(_recordHash, newPollId, msg.sender);
 
@@ -269,8 +269,7 @@ contract Crate is Ownable {
      */
     function resolveChallenge(bytes32 _recordHash) public doesExist(_recordHash) {
         Record storage record = records[_recordHash];
-        require(record.challengeId > 0, "No challenge for record");
-        require(record.resolved == false, "Challenge has already been resolved");
+        require(record.challengeId > 0 && record.resolved == false, "Has no open challenge");
         require(pollRegistry.hasResolved(record.challengeId) == true, "Poll has not ended");
 
         bool challengeFailed = pollRegistry.hasPassed(record.challengeId);
@@ -278,8 +277,6 @@ contract Crate is Ownable {
         bool shouldBeAdded = challengeFailed && !record.listed;
         bool listHasSpace = listLength + 1 <= maxListLength;
         require(!shouldBeAdded || (shouldBeAdded && (listHasSpace || msg.sender == winningOwner)), "Max length reached or not authorized to skip list addition");
-
-        uint challengeDeposit = record.challengeDeposit;
  
         address winner = challengeFailed ? record.owner : record.challengerPayoutAddress;
         uint rewards = challengeFailed ? record.challengeDeposit : record.deposit;
@@ -333,7 +330,7 @@ contract Crate is Ownable {
         require(record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true), "Record is in challenged state");
         require(record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry ), "Record can only be removed by owner, challenge or if expired");
         
-        require(ERC20(record.tokenAddress).transferFrom(address(this), record.owner, record.deposit), "Tokens failed to transfer.");
+        require(IERC20(record.tokenAddress).transferFrom(address(this), record.owner, record.deposit), "Tokens failed to transfer.");
 
         _remove(_recordHash);
     }
@@ -349,7 +346,7 @@ contract Crate is Ownable {
         require(length > 0, "Hash list must have at least one entry");
         require(length < BATCH_MAX, "Hash list is too long");
         require(_datas.length == length, "Hash list and data list must be of equal length");
-        require(token.balanceOf(msg.sender) >= (_amount * length), "Insufficient token balance");
+        require(IERC20(tokenAddress).balanceOf(msg.sender) >= (_amount * length), "Insufficient token balance");
         require(_amount >= minDeposit, "Not enough stake for application.");
 
         bool listed = appDuration == 0 ? true : false;
@@ -359,7 +356,7 @@ contract Crate is Ownable {
         }
 
         uint8 addedCount = 0;
-        address tokenAddress = address(token);
+        address _tokenAddress = tokenAddress;
 
         for (uint8 i=0; i < length;) {
             bytes32 _hash = _recordHashes[i];
@@ -373,7 +370,7 @@ contract Crate is Ownable {
                 record.deposit = _amount;
                 record.data = _data;
                 record.doesExist = true;
-                record.tokenAddress = tokenAddress;
+                record.tokenAddress = _tokenAddress;
 
                 if (listed) {
                     uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
@@ -391,7 +388,7 @@ contract Crate is Ownable {
         }
 
         if (addedCount > 0) {
-            require(token.transferFrom(msg.sender, address(this), (_amount * addedCount)), "Tokens failed to transfer.");
+            require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), (_amount * addedCount)), "Tokens failed to transfer.");
         }
      }
     
@@ -414,7 +411,7 @@ contract Crate is Ownable {
                 (record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true)) && // no challenge or challenge has been resolved
                 (record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry)) // caller is owner or list time has expired
             ) {
-                require(ERC20(record.tokenAddress).transferFrom(address(this),record.owner, record.deposit), "Tokens failed to transfer.");
+                require(IERC20(record.tokenAddress).transferFrom(address(this),record.owner, record.deposit), "Tokens failed to transfer.");
                 _remove(_hash);
             }
 
@@ -503,7 +500,7 @@ contract Crate is Ownable {
      * @param _token erc20 token address to use for new proposals 
      */
     function updateToken(address _token) public onlyOwner {
-        token = ERC20(_token);
+        tokenAddress = _token;
     }
 
     /*
@@ -530,7 +527,7 @@ contract Crate is Ownable {
 
     function updatePosition(bytes32 _recordHash, bytes32 _prevHash) public {
         require(isSortable, "Sorting is disable");
-        require(token.balanceOf(msg.sender) > 0, "Insufficient token balance");
+        require(IERC20(tokenAddress).balanceOf(msg.sender) > 0, "Insufficient token balance");
         require(records[_recordHash].listed, "Record is not listed");
         require(positions[_prevHash].next != bytes32(0) || positions[_prevHash].prev != bytes32(0), "Previous record hash is not sorted");
 
@@ -560,7 +557,7 @@ contract Crate is Ownable {
         record.deposit = _amount;
         record.data = _data;
         record.doesExist = true;
-        record.tokenAddress = address(token);
+        record.tokenAddress = tokenAddress;
         
 
         if (isBeingListed) {
