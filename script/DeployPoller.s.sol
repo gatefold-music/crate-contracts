@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
 import "../src/PollRegistry.sol";
+import "../src/CurationToken.sol";
+import "../src/CurationTokenFactory.sol";
 
 // source .env
 // forge script script/DeployPoller.s.sol:DeployScript --rpc-url $SEPOLIA_RPC_URL  --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_KEY -vvvv
@@ -22,9 +24,25 @@ contract DeployScript is Script {
     function run() external {
         vm.startBroadcast();
 
-        // VerifySignature sigVerify = new VerifySignature();
+        CurationToken token = new CurationToken("fadsfad", "fasdfs");
 
-       new PollRegistry();
+        address tokenImpl = address(token);
+
+        console2.log("token impl");
+        console2.log(tokenImpl);
+
+        CurationTokenFactory factory = new CurationTokenFactory(tokenImpl);
+
+        console2.log("factory address");
+        console2.log(address(factory));
+
+        address newTokenAddress = factory.deployToken();
+
+        console2.log("new token address");
+        console2.log(address(newTokenAddress));
+        console2.log(CurationToken(newTokenAddress).symbol());
+
+       
 
         vm.stopBroadcast();
     }

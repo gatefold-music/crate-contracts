@@ -3,14 +3,14 @@ pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {CrateRegistry} from "../src/CrateRegistry.sol";
-import {CrateToken} from "../src/CrateToken.sol";
+import {CurationToken} from "../src/CurationToken.sol";
 import {PollRegistry} from "../src/PollRegistry.sol";
 import {Crate} from "../src/Crate.sol";
 
 
 contract CrateRegistryTest is Test {
     CrateRegistry public crateRegistry;
-    CrateToken public crateToken;
+    CurationToken public crateToken;
     PollRegistry public pollRegistry;
     Crate public crate;
     address public ownerAddress = address(0x12345);
@@ -21,7 +21,7 @@ contract CrateRegistryTest is Test {
         pollRegistry = new PollRegistry();
 
         vm.prank(ownerAddress);
-        crateToken = new CrateToken("CRATE TOKEN", "CRATE");
+        crateToken = new CurationToken("CRATE TOKEN", "CRATE");
 
         vm.prank(ownerAddress);
         crate = new Crate("HIP-HOP", "Are you talking to me? You must be talking to me... ", address(crateToken), address(pollRegistry), 10);

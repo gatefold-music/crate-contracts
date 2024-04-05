@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
 import "../../src/PollRegistry.sol";
-import "../../src/CrateToken.sol";
+import "../../src/CurationToken.sol";
 
 
 contract PollRegistryTest is Test {
@@ -23,12 +23,12 @@ contract PollRegistryTest is Test {
     event VoteCommitted(uint pollId, uint _amount, address voter);
     event VoteRevealed(uint indexed pollId, uint numTokens, bool indexed choice, address indexed voter);
 
-    CrateToken public token;
+    CurationToken public token;
     function setUp() public {
         pr = new PollRegistry();
 
         vm.prank(owner);
-        token = new CrateToken("Test Token", "TEST");
+        token = new CurationToken("Test Token", "TEST");
 
          vm.prank(owner);
          token.mint(owner, 1000);

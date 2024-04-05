@@ -16,7 +16,7 @@ contract Crate is Ownable {
     uint public appDuration;
     uint public listDuration;
     address public tokenAddress;
-    PollRegistry public pollRegistry;
+    address public pollRegistryAddress;
     uint8 public constant BATCH_MAX = 51; 
     bool public isSealed;
     bool public isSortable;
@@ -79,7 +79,7 @@ contract Crate is Ownable {
     constructor (string memory _name, string memory _description, address _token, address _voting, uint _minDeposit) {
         require(_token != address(0), "Token address should not be zero address");
         tokenAddress = _token;
-        pollRegistry = PollRegistry(_voting);
+        pollRegistryAddress = _voting;
         name = _name;
         description = _description;
         minDeposit = _minDeposit;
@@ -249,7 +249,7 @@ contract Crate is Ownable {
 
         address payoutAddress = _payoutAddress != address(0) ? _payoutAddress : msg.sender;
 
-        uint newPollId = pollRegistry.createPoll(record.tokenAddress, record.owner, payoutAddress);
+        uint newPollId = PollRegistry(pollRegistryAddress).createPoll(record.tokenAddress, record.owner, payoutAddress);
         record.challengeId = newPollId;
         record.challenger = msg.sender;
         record.challengerPayoutAddress = payoutAddress;
@@ -270,9 +270,9 @@ contract Crate is Ownable {
     function resolveChallenge(bytes32 _recordHash) public doesExist(_recordHash) {
         Record storage record = records[_recordHash];
         require(record.challengeId > 0 && record.resolved == false, "Has no open challenge");
-        require(pollRegistry.hasResolved(record.challengeId) == true, "Poll has not ended");
+        require(PollRegistry(pollRegistryAddress).hasResolved(record.challengeId) == true, "Poll has not ended");
 
-        bool challengeFailed = pollRegistry.hasPassed(record.challengeId);
+        bool challengeFailed = PollRegistry(pollRegistryAddress).hasPassed(record.challengeId);
         address winningOwner = challengeFailed ? record.owner : record.challenger;
         bool shouldBeAdded = challengeFailed && !record.listed;
         bool listHasSpace = listLength + 1 <= maxListLength;

@@ -4,12 +4,12 @@ pragma solidity ^0.8.13;
 import {Test, console2} from "forge-std/Test.sol";
 import {Crate} from "../../src/Crate.sol";
 import {CrateRegistry} from "../../src/CrateRegistry.sol";
-import {CrateToken} from "../../src/CrateToken.sol";
+import {CurationToken} from "../../src/CurationToken.sol";
 import {PollRegistry} from "../../src/PollRegistry.sol";
 
 
 contract CrateTest is Test {
-    CrateToken public crateToken;
+    CurationToken public crateToken;
     PollRegistry public pollRegistry;
     Crate public crate;
     address public ownerAddress = address(0x12345);
@@ -27,7 +27,7 @@ contract CrateTest is Test {
         pollRegistry = new PollRegistry();
 
         vm.prank(ownerAddress);
-        crateToken = new CrateToken("CRATE TOKEN", "CRATE");
+        crateToken = new CurationToken("CRATE TOKEN", "CRATE");
 
         vm.prank(ownerAddress);
         crate = new Crate("HIP-HOP", "A List of cool hip hop tracks", address(crateToken), address(pollRegistry), 10);
@@ -69,7 +69,7 @@ contract CrateTest is Test {
         assertEq(crate.tokenAddress(), address(crateToken));
 
         assertEq(crate.tokenAddress(), address(crateToken));
-        assertEq(address(crate.pollRegistry()), address(pollRegistry));
+        assertEq(crate.pollRegistryAddress(), address(pollRegistry));
     }
     function testPropose() public {
         string memory value = "A fake list item";
