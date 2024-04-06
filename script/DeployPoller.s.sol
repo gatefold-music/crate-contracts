@@ -23,7 +23,7 @@ contract DeployScript is Script {
     function run() external {
         vm.startBroadcast();
 
-        CurationTokenUpgradeable token = new CurationTokenUpgradeable();
+        CurationToken token = new CurationToken();
 
         address tokenImpl = address(token);
 
@@ -40,17 +40,14 @@ contract DeployScript is Script {
         console2.log("new token address");
         console2.log(newTokenAddress);
 
-        console2.log(CurationTokenUpgradeable(newTokenAddress).name());
-        console2.log(CurationTokenUpgradeable(newTokenAddress).symbol());
-        console2.log(CurationTokenUpgradeable(newTokenAddress).owner());
+        console2.log(CurationToken(newTokenAddress).name());
+        console2.log(CurationToken(newTokenAddress).symbol());
+        console2.log(CurationToken(newTokenAddress).owner());
 
-        CurationTokenUpgradeable(newTokenAddress).initialize("Token name", "SYMBOL", msg.sender);
-        console2.log(CurationTokenUpgradeable(newTokenAddress).name());
-        console2.log(CurationTokenUpgradeable(newTokenAddress).symbol());
-        console2.log(CurationTokenUpgradeable(newTokenAddress).owner());
-
-
-       
+        CurationToken(newTokenAddress).initialize("Token name", "SYMBOL", msg.sender);
+        console2.log(CurationToken(newTokenAddress).name());
+        console2.log(CurationToken(newTokenAddress).symbol());
+        console2.log(CurationToken(newTokenAddress).owner());       
 
         vm.stopBroadcast();
     }

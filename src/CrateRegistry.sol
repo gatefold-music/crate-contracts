@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.21;
-import {CurationToken} from "./CurationToken.sol";
+// import {CurationTokenOG} from "./CurationTokenOG.sol";
 import {PollRegistry} from "./PollRegistry.sol";
 import {Crate} from "./Crate.sol";
 

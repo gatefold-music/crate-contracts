@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.21;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
-contract CurationTokenUpgradeable is ERC20Upgradeable, OwnableUpgradeable {
+contract CurationTokenOG is ERC20, Ownable {
+    constructor(string memory _name, string memory _symbol) ERC20(_name, _symbol) {}
 
     // Initializes factory
-    function initialize(string memory _name, string memory _symbol, address _owner) initializer public {
-        __ERC20_init(_name, _symbol);
-        __Ownable_init(_owner);
-    }
+    // function initialize(string memory _name, string memory _symbol) public initializer {
+    //     ERC20.initialize(_name, _symbol);
+    // }
     function mint(address _account, uint256 _amount) public onlyOwner {
         _mint(_account, _amount);
     }

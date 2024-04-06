@@ -27,7 +27,8 @@ contract CrateTest is Test {
         pollRegistry = new PollRegistry();
 
         vm.prank(ownerAddress);
-        crateToken = new CurationToken("CRATE TOKEN", "CRATE");
+        crateToken = new CurationToken();
+        crateToken.initialize("CRATE TOKEN", "CRATE", ownerAddress);
 
         vm.prank(ownerAddress);
         crate = new Crate("HIP-HOP", "A List of cool hip hop tracks", address(crateToken), address(pollRegistry), 10);

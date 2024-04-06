@@ -3,7 +3,7 @@ pragma solidity ^0.8.21;
 
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
-import {CurationTokenUpgradeable} from "./CurationTokenUpgradeable.sol";
+import {CurationToken} from "./CurationToken.sol";
 
 contract CurationTokenFactory is Ownable {
     address public curationTokenImplementation;

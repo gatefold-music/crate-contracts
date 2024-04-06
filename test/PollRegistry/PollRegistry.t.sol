@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
 import "../../src/PollRegistry.sol";
-import "../../src/CurationToken.sol";
+import {CurationToken} from "../../src/CurationToken.sol";
 
 
 contract PollRegistryTest is Test {
@@ -28,7 +28,8 @@ contract PollRegistryTest is Test {
         pr = new PollRegistry();
 
         vm.prank(owner);
-        token = new CurationToken("Test Token", "TEST");
+        token = new CurationToken();
+        token.initialize("Test Token", "TEST", owner);
 
          vm.prank(owner);
          token.mint(owner, 1000);
