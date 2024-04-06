@@ -124,3 +124,7 @@ add modifiers
 
 private listing? aes ? 
 ^^ submit both the secret md5 hash and the aes encrypted hash. They should match once unvieled to prove that they were pointing to the same data
+
+
+
+uint256 max is 115792089237316195423570985008687907853269984665640564039457584007913129639935

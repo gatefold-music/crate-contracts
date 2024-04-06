@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
 import "../src/PollRegistry.sol";
-import "../src/CurationToken.sol";
 import "../src/CurationTokenFactory.sol";
 
 // source .env
@@ -24,7 +23,7 @@ contract DeployScript is Script {
     function run() external {
         vm.startBroadcast();
 
-        CurationToken token = new CurationToken("fadsfad", "fasdfs");
+        CurationTokenUpgradeable token = new CurationTokenUpgradeable();
 
         address tokenImpl = address(token);
 
@@ -36,11 +35,20 @@ contract DeployScript is Script {
         console2.log("factory address");
         console2.log(address(factory));
 
-        address newTokenAddress = factory.deployToken();
+        address newTokenAddress = factory.deployCurationToken();
 
         console2.log("new token address");
-        console2.log(address(newTokenAddress));
-        console2.log(CurationToken(newTokenAddress).symbol());
+        console2.log(newTokenAddress);
+
+        console2.log(CurationTokenUpgradeable(newTokenAddress).name());
+        console2.log(CurationTokenUpgradeable(newTokenAddress).symbol());
+        console2.log(CurationTokenUpgradeable(newTokenAddress).owner());
+
+        CurationTokenUpgradeable(newTokenAddress).initialize("Token name", "SYMBOL", msg.sender);
+        console2.log(CurationTokenUpgradeable(newTokenAddress).name());
+        console2.log(CurationTokenUpgradeable(newTokenAddress).symbol());
+        console2.log(CurationTokenUpgradeable(newTokenAddress).owner());
+
 
        
 
