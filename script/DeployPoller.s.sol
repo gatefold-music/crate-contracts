@@ -8,7 +8,7 @@ import "../src/CurationTokenFactory.sol";
 // source .env
 // forge script script/DeployPoller.s.sol:DeployScript --rpc-url $SEPOLIA_RPC_URL  --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_KEY -vvvv
 
-// forge script script/DeployPoller.s.sol:DeployScript --rpc-url $BASE_SEPOLIA_RPC_URL  --private-key $PRIVATE_KEY --broadcast
+// forge script script/DeployPoller.s.sol:DeployScript --rpc-url $BASE_SEPOLIA_RPC_URL  --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $BASESCAN_KEY -vvvv
 
 // forge script script/DeployErc20.s.sol:DeployScript --rpc-url $MAINNET_RPC_URL  --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_KEY -vvvv
 
@@ -35,19 +35,14 @@ contract DeployScript is Script {
         console2.log("factory address");
         console2.log(address(factory));
 
-        address newTokenAddress = factory.deployCurationToken();
+        address newTokenAddress = factory.deployCurationToken("Token name", "SYMBOL", msg.sender);
 
         console2.log("new token address");
         console2.log(newTokenAddress);
-
         console2.log(CurationToken(newTokenAddress).name());
         console2.log(CurationToken(newTokenAddress).symbol());
         console2.log(CurationToken(newTokenAddress).owner());
-
-        CurationToken(newTokenAddress).initialize("Token name", "SYMBOL", msg.sender);
-        console2.log(CurationToken(newTokenAddress).name());
-        console2.log(CurationToken(newTokenAddress).symbol());
-        console2.log(CurationToken(newTokenAddress).owner());       
+   
 
         vm.stopBroadcast();
     }

@@ -8,13 +8,16 @@ import {CurationToken} from "./CurationToken.sol";
 contract CurationTokenFactory is Ownable {
     address public curationTokenImplementation;
 
-    event newCrate(address crateAddress);
+    event newCrate(address curationToken, address owner);
 
     constructor(address _curationTokenImplementation) {
         curationTokenImplementation = _curationTokenImplementation;
     }
-    function deployCurationToken() public onlyOwner returns (address) {
+    function deployCurationToken(string memory _name, string memory _symbol, address _owner) public onlyOwner returns (address) {
         address newTokenAddress = Clones.clone(curationTokenImplementation);
+        CurationToken(newTokenAddress).initialize(_name, _symbol, _owner);
+
+        emit newCrate(newTokenAddress, _owner);
         return newTokenAddress;
     }
 }

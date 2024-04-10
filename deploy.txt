@@ -1,0 +1,8 @@
+deploy to base sepolia 
+forge create --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --etherscan-api-key $BASESCAN_KEY --verify --chain-id 84532 src/CurationToken.sol:CurationToken
+
+
+
+deploy token factory to base 
+
+forge create --rpc-url $BASE_SEPOLIA_RPC_URL --constructor-args 0x59d77ef3e413aa33ada06B6B0B9c32e640f27824 --private-key $PRIVATE_KEY --etherscan-api-key $BASESCAN_KEY --verify --chain-id 84532 src/CurationTokenFactory.sol:CurationTokenFactory
