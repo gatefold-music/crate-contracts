@@ -2,14 +2,14 @@
 pragma solidity ^0.8.21;
 
 import {PollRegistry} from "./PollRegistry.sol";
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "./VerifySignature.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { console2} from "forge-std/Test.sol";
 
 
 
-contract Crate is Ownable { 
+contract Crate is OwnableUpgradeable { 
     string public name;
     string public description;
     uint public minDeposit;
@@ -76,7 +76,7 @@ contract Crate is Ownable {
     event SortOrderUpdated(bytes32 indexed recordHash, bytes32 prevRecordHash);
     event SortOrderRemoved(bytes32 indexed recordHash);
 
-    constructor (string memory _name, string memory _description, address _token, address _voting, uint _minDeposit) {
+    function initialize(string memory _name, string memory _description, address _token, address _voting, uint _minDeposit, address _owner) initializer public {
         require(_token != address(0), "Token address should not be zero address");
         tokenAddress = _token;
         pollRegistryAddress = _voting;
@@ -87,6 +87,7 @@ contract Crate is Ownable {
         listDuration = 0; // no listing period
         listLength = 0;
         maxListLength = type(uint256).max;
+        __Ownable_init(_owner);
     }
 
     /*

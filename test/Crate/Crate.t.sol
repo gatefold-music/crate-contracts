@@ -31,7 +31,8 @@ contract CrateTest is Test {
         crateToken.initialize("CRATE TOKEN", "CRATE", ownerAddress);
 
         vm.prank(ownerAddress);
-        crate = new Crate("HIP-HOP", "A List of cool hip hop tracks", address(crateToken), address(pollRegistry), 10);
+        crate = new Crate();
+        crate.initialize("HIP-HOP", "A List of cool hip hop tracks", address(crateToken), address(pollRegistry), 10, address(this));
 
         vm.prank(ownerAddress);
         crateToken.mint(spenderAddress, 1000);

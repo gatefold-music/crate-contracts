@@ -3,33 +3,30 @@ pragma solidity ^0.8.21;
 // import {CurationTokenOG} from "./CurationTokenOG.sol";
 import {PollRegistry} from "./PollRegistry.sol";
 import {Crate} from "./Crate.sol";
+import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 
 contract CrateRegistry {
+    address public crateImplementation;
+
     uint public crateId;
     
-    /*
-     *
-     * Mappings
-     *
-     */
     mapping(uint => address) public crates; // This mapping holds all deployed crates
 
-    event newCrate(address crateAddress);
+    event NewCrate(address crateAddress, address owner, uint crateId);
 
-    constructor() {}
-
-    function deployCrate(string memory _name, string memory _description, address _token, address _voting, uint _minDeposit) public {
-        Crate crate = new Crate(_name, _description, _token, _voting, _minDeposit);
-        crate.transferOwnership(msg.sender);
-
-        address crateAddress = address(crate);
-
-        crates[++crateId] = crateAddress;
-        emit newCrate(crateAddress);
+    constructor(address _crateImplementation) {
+        crateImplementation = _crateImplementation;
     }
 
-    function deployCrateFactory() public {
+    function deployCrate(string memory _name, string memory _description, address _token, address _voting, uint _minDeposit, address _owner) public {
+        address newCrateAddress = Clones.clone(crateImplementation);
 
+        Crate(newCrateAddress).initialize(_name, _description, _token, _voting, _minDeposit, _owner);
+
+        uint newCrateId = ++crateId;
+
+        crates[newCrateId] = newCrateAddress;
+        emit NewCrate(newCrateAddress, _owner, newCrateId);
     }
 
     function tipYourCurator(address _crateAddress, bytes32 _recordHash) public payable {
