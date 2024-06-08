@@ -1,9 +1,6 @@
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
-import "openzeppelin-contracts/contracts/access/Ownable.sol";
-import { console2 } from "forge-std/Test.sol";
-
 
 /* Signature Verification
 
@@ -19,8 +16,8 @@ How to Sign and Verify
 3. Compare recovered signer to claimed signer
 */
 
-library Oracle {
-    function verify(
+contract Oracle {
+    function verifySignature(
         bytes32 _message,
         bytes memory _signature,
         address verifierAddress

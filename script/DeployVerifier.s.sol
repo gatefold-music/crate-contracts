@@ -28,7 +28,11 @@ contract DeployScript is Script {
 
         // VerifySignature sigVerify = new VerifySignature();
 
-        TestContract c = new TestContract();
+        // TestContract c = new TestContract();
+
+
+        bytes32 b = bytes32(abi.encodePacked("onchainsummer"));
+        console2.logBytes32(b);
 
         vm.stopBroadcast();
     }

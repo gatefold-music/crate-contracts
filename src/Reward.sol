@@ -7,7 +7,7 @@ import "openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
  * @title Reward Library
  * @notice Stand alone library to calculate reward pools for given amount
  */
-library Reward {
+contract Reward {
     /*
      * @dev Calculates a user's reward pool cut based on user's contribution to total staked amount
      * @notice This does not use floating point so there may be some remnants leftover 

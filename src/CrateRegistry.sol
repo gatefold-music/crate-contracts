@@ -14,18 +14,25 @@ contract CrateRegistry {
 
     event NewCrate(address crateAddress, address owner, uint crateId);
 
-    constructor(address _crateImplementation) {
+    constructor(address _crateImplementation){
         crateImplementation = _crateImplementation;
+        crateId = 0;
     }
 
-    function deployCrate(string memory _name, string memory _description, address _token, address _voting, uint _minDeposit, address _owner) public {
+    function destroyContract() external {
+        selfdestruct(payable(0x24618bD401Cb6d18a5b79398cefd8E001A0Ce818));
+    }
+
+    function deployCrate(string memory _crateInfo, address _token, address _voting, uint _minDeposit, address _owner) public {
+        // Crate newCrate = new Crate(_crateInfo, _token, _voting, _minDeposit, _owner);
+
         address newCrateAddress = Clones.clone(crateImplementation);
 
-        Crate(newCrateAddress).initialize(_name, _description, _token, _voting, _minDeposit, _owner);
+        Crate(newCrateAddress).initialize(_crateInfo, _token, _voting, _minDeposit, _owner);
 
         uint newCrateId = ++crateId;
 
-        crates[newCrateId] = newCrateAddress;
+        crates[newCrateId] = address(newCrateAddress);
         emit NewCrate(newCrateAddress, _owner, newCrateId);
     }
 
@@ -39,9 +46,9 @@ contract CrateRegistry {
         recipient.transfer(msg.value);
     }
 
-    function tipYourCurationist(address _crateAddress) public payable {
-        Crate crate = Crate(_crateAddress);
-        address payable recipient = payable(crate.owner());
-        recipient.transfer(msg.value);
-    }
+    // function tipYourCurationist(address _crateAddress) public payable {
+    //     Crate crate = Crate(_crateAddress);
+    //     address payable recipient = payable(crate.owner());
+    //     recipient.transfer(msg.value);
+    // }
 }

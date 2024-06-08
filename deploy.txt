@@ -1,8 +1,46 @@
-deploy to base sepolia 
+deploy Curation Token to base sepolia 
 forge create --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --etherscan-api-key $BASESCAN_KEY --verify --chain-id 84532 src/CurationToken.sol:CurationToken
 
+
+deploy crate contract with out verification on base sepolia
+forge create --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --chain-id 84532 src/Crate.sol:Crate
 
 
 deploy token factory to base 
 
 forge create --rpc-url $BASE_SEPOLIA_RPC_URL --constructor-args 0x59d77ef3e413aa33ada06B6B0B9c32e640f27824 --private-key $PRIVATE_KEY --etherscan-api-key $BASESCAN_KEY --verify --chain-id 84532 src/CurationTokenFactory.sol:CurationTokenFactory
+
+
+DEPLOY CRATE FACTORY
+forge create --rpc-url $BASE_SEPOLIA_RPC_URL --constructor-args 0x21db37456f1a3965ab6c0fb5fb97d394038d9243 --private-key $PRIVATE_KEY --chain-id 84532 src/CrateRegistry.sol:CrateRegistry
+
+forge create --rpc-url $BASE_SEPOLIA_RPC_URL --constructor-args 0xae6aD291236bd66bdE4903487D379eCf64FBF8D9 --private-key $PRIVATE_KEY --etherscan-api-key $BASESCAN_KEY --verify --chain-id 84532 src/CrateRegistry.sol:CrateRegistry
+
+CRATE FACTORY base sepolia address 0xeCF87594640608908975eF842CAedbDE77B83898
+verified at 0x92290885B9eB32a467E7F62D3Dbc42e06d1fE211
+
+deploy poll Registry
+
+forge create --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --chain-id 84532 src/PollRegistry.sol:PollRegistry
+
+
+DEPLOY NEW CRATE IMPLEMENTATION
+forge create --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --etherscan-api-key $BASESCAN_KEY --verify --chain-id 84532 src/Crate.sol:Crate
+
+forge create --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --chain-id 84532 src/Crate.sol:Crate
+
+deployed at 0x21Db37456f1a3965Ab6c0FB5fB97d394038d9243
+verified at 0xae6aD291236bd66bdE4903487D379eCf64FBF8D9
+
+
+DEPLOY CRATE 
+
+forge create --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --chain-id 84532 src/Crate.sol:Crate --constructor-args "some stuff" "0x036CbD53842c5426634e7929541eC2318f3dCF7e" "0x96faD698e93fA5A06Bd4c5d60A4f4df3930A9d62" 10 "0xE75906b48ed2C33e06BF6673340e0FdF20AAbb82" 
+
+
+
+
+
+forge create --rpc-url $BASE_SEPOLIA_RPC_URL --constructor-args 0xdCeFD41E42496B1148A6123BA5a2f0EDe8507DC1 --private-key $PRIVATE_KEY --chain-id 84532 src/CrateRegistry.sol:CrateRegistry
+0x8cf5d946Ce89B5c2F4c24A82eF24be3ef306Ec41
+

@@ -35,13 +35,14 @@ contract DeployScript is Script {
         console2.log("factory address");
         console2.log(address(factory));
 
-        address newTokenAddress = factory.deployCurationToken("Token name", "SYMBOL", msg.sender);
+        address newTokenAddress = factory.deployCurationToken("Token name", "SYMBOL", msg.sender, 1000);
 
         console2.log("new token address");
         console2.log(newTokenAddress);
         console2.log(CurationToken(newTokenAddress).name());
         console2.log(CurationToken(newTokenAddress).symbol());
         console2.log(CurationToken(newTokenAddress).owner());
+        console2.log(CurationToken(newTokenAddress).totalSupply());
    
 
         vm.stopBroadcast();

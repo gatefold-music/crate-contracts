@@ -24,6 +24,12 @@ contract CrateTest is Test {
     event ChallengeSucceeded(bytes32 indexed recordHash);
 
     function setUp() public {
+        //    console2.log(type(uint256).max);
+
+           bytes memory x = abi.encodePacked("1:0x0bC2A24ce568DAd89691116d5B34DEB6C203F342:1158");
+           console2.logBytes(x);
+           
+           console2.logBytes32(keccak256(x));
         pollRegistry = new PollRegistry();
 
         vm.prank(ownerAddress);
@@ -31,8 +37,8 @@ contract CrateTest is Test {
         crateToken.initialize("CRATE TOKEN", "CRATE", ownerAddress);
 
         vm.prank(ownerAddress);
-        crate = new Crate();
-        crate.initialize("HIP-HOP", "A List of cool hip hop tracks", address(crateToken), address(pollRegistry), 10, address(this));
+        // crate = new Crate("HIP-HOP", address(crateToken), address(pollRegistry), 10, address(this));
+        crate.initialize("HIP-HOP", address(crateToken), address(pollRegistry), 10, address(this));
 
         vm.prank(ownerAddress);
         crateToken.mint(spenderAddress, 1000);
@@ -60,8 +66,7 @@ contract CrateTest is Test {
     }
 
     function testCreateCrate() public {
-        assertEq(crate.name(), "HIP-HOP");
-        assertEq(crate.description(), "A List of cool hip hop tracks");
+        assertEq(crate.crateInfo(), "HIP-HOP");
         assertEq(crate.minDeposit(), 10);
         assertEq(crate.appDuration(), 0);
         assertEq(crate.listDuration(), 0);
@@ -74,8 +79,20 @@ contract CrateTest is Test {
         assertEq(crate.pollRegistryAddress(), address(pollRegistry));
     }
     function testPropose() public {
+        console2.log(type(uint256).max);
+
         string memory value = "A fake list item";
-        bytes32 hashedValue = bytes32("A fake list item");
+        bytes memory packd = abi.encodePacked(value);
+        console2.log('packed');
+        console2.logBytes(packd);
+        bytes32 khash = keccak256(packd);
+        console2.log('keckak hash packed');
+        console2.logBytes32(khash);
+
+        bytes32 hashedValue = bytes32(khash);
+        console2.log('bytes32 keck hash packed');
+        console2.logBytes32(hashedValue);
+ 
         uint minDeposit = 10;
 
         vm.expectEmit(true, true, true, true);

@@ -9,9 +9,8 @@ import { console2} from "forge-std/Test.sol";
 
 
 
-contract Crate is OwnableUpgradeable { 
-    string public name;
-    string public description;
+contract Crate is OwnableUpgradeable, Oracle { 
+    string public crateInfo;
     uint public minDeposit;
     uint public appDuration;
     uint public listDuration;
@@ -76,12 +75,11 @@ contract Crate is OwnableUpgradeable {
     event SortOrderUpdated(bytes32 indexed recordHash, bytes32 prevRecordHash);
     event SortOrderRemoved(bytes32 indexed recordHash);
 
-    function initialize(string memory _name, string memory _description, address _token, address _voting, uint _minDeposit, address _owner) initializer public {
+    function initialize(string memory _crateInfo, address _token, address _voting, uint _minDeposit, address _owner) public initializer {
         require(_token != address(0), "Token address should not be zero address");
         tokenAddress = _token;
         pollRegistryAddress = _voting;
-        name = _name;
-        description = _description;
+        crateInfo = _crateInfo;
         minDeposit = _minDeposit;
         appDuration = 0; // no application period
         listDuration = 0; // no listing period
@@ -96,7 +94,7 @@ contract Crate is OwnableUpgradeable {
      *
      */
     modifier validateHash(bytes32 _hash, string memory _data) {
-        require(_hash == bytes32(abi.encodePacked(_data)),  "Hash does not match data string");
+        require(_hash == keccak256(abi.encodePacked(_data)),  "Hash does not match data string");
         _;
     }
 
@@ -179,7 +177,7 @@ contract Crate is OwnableUpgradeable {
         sufficientBalance(_amount, msg.sender) 
     {
         bytes32 message = keccak256(abi.encode(_recordHash, _data));
-        require(Oracle.verify(message, _signature, verifierAddress), "Invalid oracle signature"); // verify signature 
+        require(verifySignature(message, _signature, verifierAddress), "Invalid oracle signature"); // verify signature 
 
         bool isBeingListed = appDuration == 0 ? true : false;
         require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
@@ -199,7 +197,7 @@ contract Crate is OwnableUpgradeable {
         require(verifierAddress != address(0), "Crate owner has not set a verifier address");
 
         bytes32 message = keccak256(abi.encode(_secretHash, _secretData));
-        require(Oracle.verify(message, _signature, verifierAddress), "Invalid oracle signature"); // verify signature 
+        require(verifySignature(message, _signature, verifierAddress), "Invalid oracle signature"); // verify signature 
 
         bool isBeingListed = appDuration == 0 ? true : false;
         require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
@@ -224,7 +222,7 @@ contract Crate is OwnableUpgradeable {
         require(record.isPrivate ,"Listing is not private");
 
         bytes32 message = keccak256(abi.encode(_secretHash, _secretHash, _signature));
-        require(Oracle.verify(message, _signature, record.oracleAddress), "Invalid oracle signature"); // verify signature 
+        require(verifySignature(message, _signature, record.oracleAddress), "Invalid oracle signature"); // verify signature 
 
         _remove(_secretHash);
 
@@ -468,8 +466,8 @@ contract Crate is OwnableUpgradeable {
         privateViewers[_recordHash][_viewerAddress] = _canView;
     } 
     
-    function updateDescription(string memory _description) public onlyOwner {
-        description = _description;
+    function updateCrateInfo(string memory _crateInfo) public onlyOwner {
+        crateInfo = _crateInfo;
     }
 
     function updateVerifier(address _verifierAddress) public onlyOwner {

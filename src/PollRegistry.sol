@@ -4,7 +4,6 @@ pragma solidity ^0.8.21;
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./Reward.sol";
-import {console2} from "forge-std/Test.sol";
 
 
 /*
@@ -12,7 +11,7 @@ import {console2} from "forge-std/Test.sol";
  * @description A polling hyperstructure to allow token holders to vote and settle disputes 
  */
 
-contract PollRegistry is ReentrancyGuard {
+contract PollRegistry is Reward, ReentrancyGuard {
     uint private pollId;
 
     /*
@@ -225,8 +224,7 @@ contract PollRegistry is ReentrancyGuard {
 
         poll.winnerWithdrawalCount += 1;
 
-        uint reward = Reward.rewardPoolShare(poll.rewardPool, amountToSend, stakedTotal);
-        console2.log(reward);
+        uint reward = rewardPoolShare(poll.rewardPool, amountToSend, stakedTotal);
 
         poll.withdrawnRewardAmount += reward;
 
