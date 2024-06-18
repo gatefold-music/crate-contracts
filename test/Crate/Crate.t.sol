@@ -95,10 +95,12 @@ contract CrateTest is Test {
  
         uint minDeposit = 10;
 
+        console2.logBytes(new bytes(0));
+
         vm.expectEmit(true, true, true, true);
         emit RecordAdded(hashedValue, minDeposit, value, spenderAddress, 0, false);
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         Crate.Record memory record = crate.getRecord(hashedValue);
 
@@ -119,29 +121,29 @@ contract CrateTest is Test {
 
         vm.expectRevert("Hash does not match data string");
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, "some wrong value that does not match the hashed value");
+        crate.propose(hashedValue, minDeposit, "some wrong value that does not match the hashed value", new bytes(0), false);
 
         vm.expectRevert("Amount does not meet crate minimum");
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, 9, value);
+        crate.propose(hashedValue, 9, value, new bytes(0), false);
 
         vm.expectRevert("Insufficient token balance");
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, 2000, value);
+        crate.propose(hashedValue, 2000, value, new bytes(0), false);
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.expectRevert("Record already exists");
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.prank(ownerAddress);
         crate.sealCrate();
 
         vm.expectRevert("Crate has been sealed close");
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
     }
 
     function test_Propose_MaxLengthReached() public {
@@ -157,11 +159,11 @@ contract CrateTest is Test {
         crate.updateMaxLength(1);
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.expectRevert("Exceeds max length");
          vm.prank(spenderAddress);
-        crate.propose(hashedValue2, minDeposit2, value2);
+        crate.propose(hashedValue2, minDeposit2, value2, new bytes(0), false);
     }
 
     function testProposeWithAppDuration() public {
@@ -179,7 +181,7 @@ contract CrateTest is Test {
         vm.expectEmit(true, true, true, true);
         emit Application(hashedValue, minDeposit, value, spenderAddress, block.timestamp + NEW_APP_DURATION, false);
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         Crate.Record memory record = crate.getRecord(hashedValue);
 
@@ -224,7 +226,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.expectRevert("Record already allow listed");
         vm.prank(spenderAddress);
@@ -242,7 +244,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.prank(challengerAddress);
         crate.challenge(hashedValue, 10, challengerAddress);
@@ -263,7 +265,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.expectRevert("Application duration has not expired");
         vm.prank(spenderAddress);
@@ -279,7 +281,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         uint NEW_APP_DURATION = 86400; // one day
 
@@ -291,7 +293,7 @@ contract CrateTest is Test {
         uint minDeposit2 = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue2, minDeposit2, value2);
+        crate.propose(hashedValue2, minDeposit2, value2, new bytes(0), false);
 
         vm.warp(block.timestamp + NEW_APP_DURATION + 1);
 
@@ -316,7 +318,7 @@ contract CrateTest is Test {
         vm.expectEmit(true, true, true, true);
         emit RecordAdded(hashedValue, minDeposit, value, spenderAddress, ts, false);
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         Crate.Record memory record = crate.getRecord(hashedValue);
 
@@ -344,7 +346,7 @@ contract CrateTest is Test {
         vm.expectEmit(true, true, true, true);
         emit RecordAdded(hashedValue, minDeposit, value, spenderAddress, ts, false);
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         Crate.Record memory record = crate.getRecord(hashedValue);
         assertEq(record.listingExpiry, ts);
@@ -375,7 +377,7 @@ contract CrateTest is Test {
         vm.expectEmit(true, true, true, true);
         emit RecordAdded(hashedValue, minDeposit, value, spenderAddress, ts, false);
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.prank(challengerAddress);
         crate.challenge(hashedValue, 10, challengerAddress);
@@ -405,7 +407,7 @@ contract CrateTest is Test {
         vm.expectEmit(true, true, true, true);
         emit RecordAdded(hashedValue, minDeposit, value, spenderAddress, ts, false);
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         Crate.Record memory record = crate.getRecord(hashedValue);
         assertEq(record.listingExpiry, ts);
@@ -426,7 +428,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.expectEmit(true, true, true, true);
         emit Challenge(hashedValue, 1, challengerAddress);
@@ -446,7 +448,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.prank(ownerAddress);
         crate.sealCrate();
@@ -482,7 +484,7 @@ contract CrateTest is Test {
         uint minDeposit = 20;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.expectRevert("Not enough stake for application.");
         vm.prank(challengerAddress);
@@ -495,7 +497,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.prank(challengerAddress);
         crate.challenge(hashedValue, 10, challengerAddress);
@@ -511,7 +513,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.prank(challengerAddress);
         uint pollId = crate.challenge(hashedValue, 10, challengerAddress);
@@ -542,7 +544,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.expectRevert("Has no open challenge");
         crate.resolveChallenge(hashedValue);
@@ -554,7 +556,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.prank(challengerAddress);
         uint pollId = crate.challenge(hashedValue, 10, challengerAddress);
@@ -586,7 +588,7 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.prank(challengerAddress);
         uint pollId = crate.challenge(hashedValue, 10, challengerAddress);
@@ -601,14 +603,14 @@ contract CrateTest is Test {
         uint minDeposit = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValue, minDeposit, value);
+        crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         string memory valueTwo = "Another fake list item";
         bytes32 hashedValueTwo = bytes32("Another fake list item");
         uint minDepositTwo = 10;
 
         vm.prank(spenderAddress);
-        crate.propose(hashedValueTwo, minDepositTwo, valueTwo);
+        crate.propose(hashedValueTwo, minDepositTwo, valueTwo, new bytes(0), false);
 
         vm.prank(challengerAddress);
         uint pollId = crate.challenge(hashedValue, 10, challengerAddress);
