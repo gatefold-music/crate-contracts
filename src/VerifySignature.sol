@@ -21,7 +21,7 @@ contract Oracle {
         bytes32 _message,
         bytes memory _signature,
         address verifierAddress
-    ) public view returns (bool) {
+    ) public pure returns (bool) {
         bytes32 ethSignedMessageHash = getFormattedMessageHash(_message);
 
         return getMessageSigner(ethSignedMessageHash, _signature) == verifierAddress;

@@ -459,9 +459,7 @@ contract CrateTest is Test {
     }
 
     function test_Challenge_doesNotExist() public {
-        string memory value = "A fake list item";
         bytes32 hashedValue = bytes32("A fake list item");
-        uint minDeposit = 10;
 
         vm.expectRevert("Record does not exist");
         vm.prank(challengerAddress);
@@ -469,9 +467,7 @@ contract CrateTest is Test {
     }
 
     function test_Challenge_InsufficientBalance() public {
-        string memory value = "A fake list item";
         bytes32 hashedValue = bytes32("A fake list item");
-        uint minDeposit = 10;
 
         vm.expectRevert("Record does not exist");
         vm.prank(challengerAddress);
@@ -591,7 +587,7 @@ contract CrateTest is Test {
         crate.propose(hashedValue, minDeposit, value, new bytes(0), false);
 
         vm.prank(challengerAddress);
-        uint pollId = crate.challenge(hashedValue, 10, challengerAddress);
+        crate.challenge(hashedValue, 10, challengerAddress);
 
         vm.expectRevert("Poll has not ended");
         crate.resolveChallenge(hashedValue);
