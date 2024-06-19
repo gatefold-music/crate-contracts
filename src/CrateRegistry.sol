@@ -19,13 +19,7 @@ contract CrateRegistry {
         crateId = 0;
     }
 
-    function destroyContract() external {
-        selfdestruct(payable(0x24618bD401Cb6d18a5b79398cefd8E001A0Ce818));
-    }
-
     function deployCrate(string memory _crateInfo, address _token, address _voting, uint _minDeposit, address _owner) public {
-        // Crate newCrate = new Crate(_crateInfo, _token, _voting, _minDeposit, _owner);
-
         address newCrateAddress = Clones.clone(crateImplementation);
 
         Crate(newCrateAddress).initialize(_crateInfo, _token, _voting, _minDeposit, _owner);

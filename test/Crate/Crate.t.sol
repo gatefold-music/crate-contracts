@@ -210,9 +210,7 @@ contract CrateTest is Test {
         vm.prank(ownerAddress);
         crate.updateAppDuration(NEW_APP_DURATION);
 
-        string memory value = "A fake list item";
         bytes32 hashedValue = bytes32("A fake list item");
-        uint minDeposit = 10;
 
 
         vm.expectRevert("Record does not exist");

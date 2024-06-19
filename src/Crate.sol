@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
 import {PollRegistry} from "./PollRegistry.sol";
@@ -15,7 +15,6 @@ contract Crate is OwnableUpgradeable, Oracle {
     uint public listDuration;
     address public tokenAddress;
     address public pollRegistryAddress;
-    uint8 public constant BATCH_MAX = 51; 
     bool public isSealed;
     bool public isSortable;
     uint256 public listLength; 
@@ -170,48 +169,6 @@ contract Crate is OwnableUpgradeable, Oracle {
         _add(_recordHash, _amount, _data, msg.sender, isBeingListed, isPrivate);
     }
 
-
-    // function proposeWithSig(bytes32 _recordHash, uint _amount, string memory _data, bytes memory _signature) 
-    //     public 
-    //     validateHash(_recordHash, _data) 
-    //     crateIsNotSealed()
-    //     verifyMinDeposit(_amount)
-    //     doesNotExist(_recordHash)
-    //     sufficientBalance(_amount, msg.sender) 
-    // {
-    //     bytes32 message = keccak256(abi.encode(_recordHash, _data));
-    //     require(verifySignature(message, _signature, verifierAddress), "Invalid oracle signature"); // verify signature 
-
-    //     bool isBeingListed = appDuration == 0 ? true : false;
-    //     require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
-    //     require(!isBeingListed || IERC20(tokenAddress).transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
-
-    //     _add(_recordHash, _amount, _data, msg.sender, isBeingListed, false);
-    // }
-
-    // function privatePropose(bytes32 _secretHash, uint _amount, string memory _secretData,  bytes memory _signature) 
-    //     public
-    //     validateHash(_secretHash, _secretData) 
-    //     crateIsNotSealed()
-    //     verifyMinDeposit(_amount)
-    //     doesNotExist(_secretHash)
-    //     sufficientBalance(_amount, msg.sender) 
-    // {
-    //     require(verifierAddress != address(0), "Crate owner has not set a verifier address");
-
-    //     bytes32 message = keccak256(abi.encode(_secretHash, _secretData));
-    //     require(verifySignature(message, _signature, verifierAddress), "Invalid oracle signature"); // verify signature 
-
-    //     bool isBeingListed = appDuration == 0 ? true : false;
-    //     require(!isBeingListed || listLength + 1 <= maxListLength, "Exceeds max length"); 
-    //     require(!isBeingListed || IERC20(tokenAddress).transferFrom(msg.sender, address(this), _amount), "Tokens failed to transfer.");
-
-    //     records[_secretHash].isPrivate = true;
-    //     records[_secretHash].oracleAddress = verifierAddress;
-
-    //     _add(_secretHash, _amount, _secretData, msg.sender, isBeingListed, true);
-    // }
-
     function revealProposal(bytes32 _secretHash, bytes32 _recordHash, string memory _data, bytes memory _signature) 
         public
         crateIsNotSealed()
@@ -223,12 +180,12 @@ contract Crate is OwnableUpgradeable, Oracle {
         Record memory record = records[_secretHash];
         require(record.isPrivate ,"Listing is not private");
 
-        bytes32 message = keccak256(abi.encode(_secretHash, _secretHash, _signature));
+        bytes32 message = keccak256(abi.encode(_secretHash, _recordHash));
         require(verifySignature(message, _signature, record.oracleAddress), "Invalid oracle signature"); // verify signature 
 
         _remove(_secretHash);
 
-        _add(_recordHash, record.deposit, _data, record.owner, true, false);
+        _add(_recordHash, record.deposit, _data, record.owner, record.listed, false);
     }
 
     /*
@@ -336,196 +293,6 @@ contract Crate is OwnableUpgradeable, Oracle {
         _remove(_recordHash);
     }
 
-    /*
-     *
-     * BATCH
-     *
-     */
-    // function batchPropose(bytes32[] memory _recordHashes, string[] memory _datas, uint _amount) public {
-    //     require(!isSealed, "This crate has been closed");
-    //     uint length = _recordHashes.length;
-    //     require(length > 0, "Hash list must have at least one entry");
-    //     require(length < BATCH_MAX, "Hash list is too long");
-    //     require(_datas.length == length, "Hash list and data list must be of equal length");
-    //     require(IERC20(tokenAddress).balanceOf(msg.sender) >= (_amount * length), "Insufficient token balance");
-    //     require(_amount >= minDeposit, "Not enough stake for application.");
-
-    //     bool listed = appDuration == 0 ? true : false;
-    //     if (listed) {   
-    //         require(listLength + length <= maxListLength, "Exceeds max length"); 
-    //         listLength += length;
-    //     }
-
-    //     uint8 addedCount = 0;
-    //     address _tokenAddress = tokenAddress;
-
-    //     for (uint8 i=0; i < length;) {
-    //         bytes32 _hash = _recordHashes[i];
-    //         string memory _data = _datas[i];
-    //         if (!records[_hash].doesExist) {
-    //             addedCount += 1;
-
-    //             Record storage record = records[_hash];
-    //             record.listed = listed;
-    //             record.owner = msg.sender;
-    //             record.deposit = _amount;
-    //             record.data = _data;
-    //             record.doesExist = true;
-    //             record.tokenAddress = _tokenAddress;
-
-    //             if (listed) {
-    //                 uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-    //                 emit RecordAdded(_hash, _amount, _data, msg.sender, expiry, false);
-    //             } else {
-    //                 record.applicationExpiry = block.timestamp + appDuration;
-
-    //                 emit Application(_hash, _amount, _data, msg.sender, record.applicationExpiry, record.isPrivate);
-    //             }
-    //         }
-
-    //         unchecked {
-    //             i++;
-    //         }
-    //     }
-
-    //     if (addedCount > 0) {
-    //         require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), (_amount * addedCount)), "Tokens failed to transfer.");
-    //     }
-    //  }
-    
-
-    /*
-     * @dev Remove an owned or expired record
-     * @param _recordHashes list of keccak256 hashed record identifiers
-     */
-    // function batchRemove(bytes32[] memory _recordHashes) public {
-    //     uint length = _recordHashes.length;
-    //     require(length > 0, "Hash list must have at least one entry");
-    //     require(length < BATCH_MAX,  "Hash list is too long");
-
-    //     for (uint8 i=0; i < length;) {     
-    //         bytes32 _hash = _recordHashes[i];
-    //         Record storage record = records[_hash];
-
-    //         if (
-    //             record.listed && // record is in crate
-    //             (record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true)) && // no challenge or challenge has been resolved
-    //             (record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry)) // caller is owner or list time has expired
-    //         ) {
-    //             require(IERC20(record.tokenAddress).transferFrom(address(this),record.owner, record.deposit), "Tokens failed to transfer.");
-    //             _remove(_hash);
-    //         }
-
-    //         unchecked {
-    //             i++;
-    //         }                
-    //     }      
-    // }
-
-    /*
-     * @dev Batch allow list applications if application time has expired
-     * @notice will skip (not revert) if invalid 
-     * @param _recordHashes array of keccak256 hashed record identifiers
-     */
-    // function batchResolveApplication(bytes32[] memory _recordHashes) public {  
-    //     uint length = _recordHashes.length;      
-    //     require(listLength + length <= maxListLength, "Exceeds max length"); 
-    //     uint currentTime = block.timestamp; 
-
-    //     for (uint8 i=0; i < length;) {   
-    //         bytes32 _hash = _recordHashes[i];
-
-    //             if (
-    //             records[_hash].doesExist &&
-    //             !records[_hash].listed && 
-    //             records[_hash].challengeId == 0 && 
-    //             records[_hash].applicationExpiry > 0 && 
-    //             currentTime > records[_hash].applicationExpiry
-    //         ) {
-    //             records[_hash].listed = true;
-    //             uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-
-    //             emit RecordAdded(_hash, records[_hash].deposit, records[_hash].data, records[_hash].owner, expiry, records[_hash].isPrivate);
-    //         }
-            
-    //         unchecked {
-    //             i++;
-    //         } 
-    //     } 
-    // }
-
-    /*
-     *
-     * ADMIN
-     *
-     */ 
-
-    function updateRecordViewer(bytes32 _recordHash, address _viewerAddress, bool _canView) 
-        public 
-        isRecordOwner(_recordHash, msg.sender)
-    {
-        require(records[_recordHash].isPrivate, "Record is not private");
-        privateViewers[_recordHash][_viewerAddress] = _canView;
-    } 
-    
-    function updateCrateInfo(string memory _crateInfo) public onlyOwner {
-        crateInfo = _crateInfo;
-    }
-
-    function updateVerifier(address _verifierAddress) public onlyOwner {
-        verifierAddress = _verifierAddress;
-    }
-
-    
-    /*
-     * @dev This locks the crate fooooreeeeeveer
-     * @notice any pending challenges (polls) can still be resolved even after locking
-     * @notice this action cannot be undone
-     */
-    function sealCrate() public onlyOwner {
-        isSealed = true;
-    }
-
-    function updateSortability(bool _sortable) public onlyOwner {
-        isSortable = _sortable;
-    }
-
-    function updateMaxLength(uint256 _newListLength) public onlyOwner {
-        require(_newListLength >= listLength, "Max length can not be less than current list length");
-        maxListLength = _newListLength;
-    }
-    
-    /*
-     * @dev Updates the Token 
-     * @notice does not account for old token balances
-     * @param _token erc20 token address to use for new proposals 
-     */
-    function updateToken(address _token) public onlyOwner {
-        tokenAddress = _token;
-    }
-
-    /*
-     * @dev Updates application duration 
-     * @notice if set to zero, record will get listed instantly
-     * @param _duration number of seconds until an unchallenged application can be listed
-     */
-    function updateAppDuration(uint _duration) public onlyOwner {
-         appDuration = _duration;
-    }
-
-    /*
-     * @dev Updates listing duration 
-     * @notice if set to zero, record will never expire and can only be removed by owner or poll
-     * @param _duration number of seconds until a record can removed by any caller
-     */
-    function updateListDuration(uint _duration) public onlyOwner {
-         listDuration = _duration;
-    }
-
-    function isRecordListed(bytes32 _recordHash) public view returns (bool listed, address owner) {
-        return (records[_recordHash].listed, records[_recordHash].owner);
-    }
-
     function updatePosition(bytes32 _recordHash, bytes32 _prevHash) public {
         require(isSortable, "Sorting is disable");
         require(IERC20(tokenAddress).balanceOf(msg.sender) > 0, "Insufficient token balance");
@@ -542,8 +309,89 @@ contract Crate is OwnableUpgradeable, Oracle {
         emit SortOrderUpdated(_recordHash, _prevHash);
     }
 
+    /*
+     *
+     * READ
+     *
+     */ 
+    function isRecordListed(bytes32 _recordHash) public view returns (bool listed, address owner) {
+        return (records[_recordHash].listed, records[_recordHash].owner);
+    }
+
     function getRecord(bytes32 _recordHash) public view returns (Record memory record) {
         return records[_recordHash];
+    }
+
+    /*
+     *
+     * ADMIN
+     *
+     */   
+
+    /*
+     * @dev sets crate metadata uri
+     */
+    function updateCrateInfo(string memory _crateInfo) public onlyOwner {
+        crateInfo = _crateInfo;
+    }
+
+    /*
+     * @dev Updates oracle address 
+     * @notice empty address skips oracle signature verification
+     */
+    function updateVerifier(address _verifierAddress) public onlyOwner {
+        verifierAddress = _verifierAddress;
+    }
+
+    /*
+     * @dev This locks the crate fooooreeeeeveer
+     * @notice any pending challenges (polls) can still be resolved even after locking
+     * @notice this action cannot be undone
+     */
+    function sealCrate() public onlyOwner {
+        isSealed = true;
+    }
+
+    /*
+     * @dev toggle sortability
+     */
+    function updateSortability(bool _sortable) public onlyOwner {
+        isSortable = _sortable;
+    }
+
+    /*
+     * @dev updates crate capacity
+     */
+    function updateMaxLength(uint256 _newListLength) public onlyOwner {
+        require(_newListLength >= listLength, "Max length can not be less than current list length");
+        maxListLength = _newListLength;
+    }
+    
+    /*
+     * @dev Updates the Token 
+     * @notice does not account for old token balances
+     * @param _token erc20 token address to use for new proposals 
+     */
+    function updateToken(address _token) public onlyOwner {
+        tokenAddress = _token;
+    }
+
+    /*
+     * @dev Updates application duration 
+     * @notice if set to zero, new records will get listed instantly
+     * @param _duration number of seconds until an unchallenged application can be listed
+     */
+    function updateAppDuration(uint _duration) public onlyOwner {
+         appDuration = _duration;
+    }
+
+    /*
+     * @dev Updates listing duration 
+     * @notice if set to zero, record will never expire and can only be removed by owner or poll
+     * @param _duration number of seconds until a record can removed by any caller
+     */
+    function updateListDuration(uint _duration) public onlyOwner {
+         listDuration = _duration;
     }
 
     /*
