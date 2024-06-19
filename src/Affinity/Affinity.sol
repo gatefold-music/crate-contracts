@@ -17,7 +17,7 @@ contract Affinity is IAffinity {
         tokenAddress = _tokenAddress;
     }
 
-    function makeLove(string memory _crateInfo, bytes _proof) public {
+    function makeLove(string memory _crateInfo, bytes memory _proof) public {
         // set up new token with metadata url and auth? 
         uint256 newTokenId = ++tokenIdCounter;
         tokenIds[msg.sender] = newTokenId;
@@ -32,11 +32,7 @@ contract Affinity is IAffinity {
         // perform mint somehow
     }
 
-    function haveLove() public returns (bool) {
+    function haveLove() public view override returns (bool) {
         return tokenIds[msg.sender] > 0 ? true : false;
     }
-
-    function showLove() public override {}
-    function showLove(address _recipient) public override {}
-    function showLove(uint256 _amount, address _recipient, uint256 tokenId) public override {}
 }
