@@ -5,10 +5,11 @@ import {PollRegistry} from "./PollRegistry.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "./VerifySignature.sol";
 import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import "./interfaces/IAffinityManager.sol";
 
 
 
-contract Crate is OwnableUpgradeable, Oracle { 
+contract Crate is OwnableUpgradeable, Oracle, IAffinityManager { 
     string public crateInfo;
     uint public minDeposit;
     uint public appDuration;
@@ -393,6 +394,11 @@ contract Crate is OwnableUpgradeable, Oracle {
     function updateListDuration(uint _duration) public onlyOwner {
          listDuration = _duration;
     }
+
+    function setAffinity(address _affinityAddress) public onlyOwner {
+         affinityAddress = _affinityAddress;
+    }
+
 
     /*
      *
