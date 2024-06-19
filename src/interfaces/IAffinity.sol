@@ -5,4 +5,6 @@ import "openzeppelin-contracts/contracts/utils/introspection/ERC165.sol";
 abstract contract IAffinity is ERC165 {
     error TokenIdNonExistent();
     function showLove(uint256 _amount, address _recipient) public virtual;
+
+    function haveLove() public view virtual returns (bool);
 }

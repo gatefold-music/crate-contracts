@@ -4,7 +4,7 @@ pragma solidity ^0.8.21;
 import {PollRegistry} from "./PollRegistry.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "./VerifySignature.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import { console2} from "forge-std/Test.sol";
 
 
