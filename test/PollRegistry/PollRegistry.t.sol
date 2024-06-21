@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
-import "../../src/PollRegistry.sol";
-import {CurationToken} from "../../src/CurationToken.sol";
+import "../../src/poll/PollRegistry.sol";
+import {CurationToken} from "../../src/token/CurationToken.sol";
 
 
 contract PollRegistryTest is Test {
@@ -40,33 +40,32 @@ contract PollRegistryTest is Test {
         vm.prank(owner);
         token.mint(proposer, 100);
 
-        vm.prank(owner);
-        token.approveForOwner(proposer, address(pr));
-
+        vm.prank(proposer);
+        token.approve(address(pr));
 
         vm.prank(owner);
         token.mint(challenger, 100);
 
-        vm.prank(owner);
-        token.approveForOwner(challenger, address(pr));
+        vm.prank(challenger);
+        token.approve(address(pr));
 
         vm.prank(owner);
         token.mint(voter1, 100);
 
-        vm.prank(owner);
-        token.approveForOwner(voter1, address(pr));
+        vm.prank(voter1);
+        token.approve(address(pr));
 
         vm.prank(owner);
         token.mint(voter2, 100);
 
-        vm.prank(owner);
-        token.approveForOwner(voter2, address(pr));
+        vm.prank(voter2);
+        token.approve(address(pr));
 
         vm.prank(owner);
         token.mint(voter3, 100);
 
-        vm.prank(owner);
-        token.approveForOwner(voter3, address(pr));
+        vm.prank(voter3);
+        token.approve(address(pr));
     }
 
     /*

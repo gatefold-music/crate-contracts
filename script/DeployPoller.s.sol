@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Script, console2} from "forge-std/Script.sol";
-import "../src/PollRegistry.sol";
-import "../src/CurationTokenFactory.sol";
+import "../src/poll/PollRegistry.sol";
+import "../src/token/CurationTokenFactory.sol";
 
 // source .env
 // forge script script/DeployPoller.s.sol:DeployScript --rpc-url $SEPOLIA_RPC_URL  --private-key $PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_KEY -vvvv

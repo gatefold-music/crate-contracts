@@ -2,10 +2,10 @@
 pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
-import {Crate} from "../../src/Crate.sol";
-import {CrateRegistry} from "../../src/CrateRegistry.sol";
-import {CurationToken} from "../../src/CurationToken.sol";
-import {PollRegistry} from "../../src/PollRegistry.sol";
+import {Crate} from "../../src/crate/Crate.sol";
+import {CrateRegistry} from "../../src/crate/CrateRegistry.sol";
+import {CurationToken} from "../../src/token/CurationToken.sol";
+import {PollRegistry} from "../../src/poll/PollRegistry.sol";
 
 
 contract CrateTest is Test {

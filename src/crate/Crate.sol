@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
-import {PollRegistry} from "./PollRegistry.sol";
+import {IAffinityManager} from "../interfaces/IAffinityManager.sol";
+import {ICrate} from "../interfaces/ICrate.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import {Oracle} from "./VerifySignature.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/utils/PausableUpgradeable.sol";
-import {IAffinityManager} from "./interfaces/IAffinityManager.sol";
-import {ICrate} from "./interfaces/ICrate.sol";
-
-
+import {PollRegistry} from "../poll/PollRegistry.sol";
+import {Oracle} from "../utils/VerifySignature.sol";
 
 contract Crate is 
     OwnableUpgradeable, 

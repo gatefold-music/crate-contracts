@@ -1,9 +1,9 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
-// import {CurationTokenOG} from "./CurationTokenOG.sol";
-import {PollRegistry} from "./PollRegistry.sol";
+
+import {Clones} from "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import {Crate} from "./Crate.sol";
-import "openzeppelin-contracts/contracts/proxy/Clones.sol";
+import {PollRegistry} from "../poll/PollRegistry.sol";
 
 contract CrateRegistry {
     address public crateImplementation;

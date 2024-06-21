@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.21;
 
-import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
-import "./Reward.sol";
-import {IPollRegistry} from "./interfaces/IPollRegistry.sol";
-
+import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import {IPollRegistry} from "../interfaces/IPollRegistry.sol";
+import {ReentrancyGuard} from "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+import {Reward} from "../utils/Reward.sol";
 
 /*
  * @title Poll Registry
