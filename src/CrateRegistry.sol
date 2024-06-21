@@ -16,7 +16,6 @@ contract CrateRegistry {
 
     constructor(address _crateImplementation){
         crateImplementation = _crateImplementation;
-        crateId = 0;
     }
 
     function deployCrate(string memory _crateInfo, address _token, address _voting, uint _minDeposit, address _owner) public {
@@ -29,20 +28,4 @@ contract CrateRegistry {
         crates[newCrateId] = address(newCrateAddress);
         emit NewCrate(newCrateAddress, _owner, newCrateId);
     }
-
-    function tipYourCurator(address _crateAddress, bytes32 _recordHash) public payable {
-        Crate crate = Crate(_crateAddress);
-        (bool listed, address owner) = crate.isRecordListed(_recordHash);
-        
-        require(listed, "Listing does not exist");
-
-        address payable recipient = payable(owner);
-        recipient.transfer(msg.value);
-    }
-
-    // function tipYourCurationist(address _crateAddress) public payable {
-    //     Crate crate = Crate(_crateAddress);
-    //     address payable recipient = payable(crate.owner());
-    //     recipient.transfer(msg.value);
-    // }
 }
