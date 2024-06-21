@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
 
 import {ERC20Upgradeable} from "openzeppelin-contracts-upgradeable/contracts/token/ERC20/ERC20Upgradeable.sol";
@@ -15,7 +15,7 @@ contract CurationToken is ERC20Upgradeable, OwnableUpgradeable {
         _mint(_account, _amount);
     }
 
-    function approve(address _spender) public onlyOwner {
+    function approve(address _spender) public {
         _approve(msg.sender, _spender, type(uint256).max);
     }
 

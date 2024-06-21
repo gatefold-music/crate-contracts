@@ -1,7 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.21;
-
-import "openzeppelin-contracts/contracts/utils/math/SafeMath.sol";
 
 /*
  * @title Reward Library
@@ -16,6 +14,6 @@ contract Reward {
      * @param _totalStakeAmount the total staked amount, not including reward pool
      */
     function rewardPoolShare(uint _rewardPoolAmount, uint _userStakeAmount, uint _totalStakeAmount) public pure returns (uint) {
-        return SafeMath.div(SafeMath.mul(_rewardPoolAmount, _userStakeAmount), _totalStakeAmount);
+        return (_rewardPoolAmount * _userStakeAmount) / _totalStakeAmount;
     }
 }
