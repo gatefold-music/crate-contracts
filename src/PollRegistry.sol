@@ -4,6 +4,7 @@ pragma solidity ^0.8.21;
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
 import "./Reward.sol";
+import {IPollRegistry} from "./interfaces/IPollRegistry.sol";
 
 
 /*
@@ -11,9 +12,7 @@ import "./Reward.sol";
  * @description A polling hyperstructure to allow token holders to vote and settle disputes 
  */
 
-contract PollRegistry is Reward, ReentrancyGuard {
-    uint private pollId;
-
+contract PollRegistry is IPollRegistry, Reward, ReentrancyGuard {
     /*
      *
      * CONSTANTS
@@ -63,15 +62,6 @@ contract PollRegistry is Reward, ReentrancyGuard {
 
     /*
      *
-     * EVENTS
-     *
-     */
-    event PollCreated(uint commitEndDate, uint revealEndDate, uint indexed pollId, address indexed creator);
-    event VoteCommitted(uint pollId, uint _amount, address voter);
-    event VoteRevealed(uint indexed pollId, uint numTokens, bool indexed choice, address indexed voter);
-
-    /*
-     *
      * MODIFIERS
      *
      */
@@ -85,28 +75,14 @@ contract PollRegistry is Reward, ReentrancyGuard {
         _;
     }
 
-    /*
-     *
-     * CONSTRUCTOR
-     *
-     */
-    constructor() {
-        pollId += 1; // start poll id at 1
-    }
-
-    /*
-     *
-     * CORE FUNCTIONS
-     *
-     */
+    constructor() {}
 
      /*
       * @dev Initializes a new poll instance
       * @param _tokenAddress address of token needed to stake and place vote
       */
-    function createPoll(address _tokenAddress, address _proposerAddress, address _challengerAddress) public returns (uint newPollId) {
-        newPollId = pollId;
-        pollId += 1;
+    function createPoll(address _tokenAddress, address _proposerAddress, address _challengerAddress) public override returns (uint newPollId) {
+        newPollId = ++pollId;
 
         uint commitEndDate = block.timestamp + COMMIT_DURATION;
         uint revealEndDate = commitEndDate + REVEAL_DURATION;
@@ -134,7 +110,7 @@ contract PollRegistry is Reward, ReentrancyGuard {
      * @param _secretHash keccak256 hash of user's vote + random salt
      * @param _amount amount of tokens to stake on this vote. 1 token = 1 vote
      */
-    function commitVote(uint _pollId, bytes32 _secretHash, uint _amount) public pollExists(_pollId) nonReentrant {
+    function commitVote(uint _pollId, bytes32 _secretHash, uint _amount) public override pollExists(_pollId) nonReentrant {
         Poll storage poll = polls[_pollId];
         require(poll.exists == true, "Poll does not exist");
         require(block.timestamp < poll.commitEndDate, "Commit stage has ended");
@@ -161,7 +137,7 @@ contract PollRegistry is Reward, ReentrancyGuard {
      * @param _salt random number defined by caller to commitVote
      * @param _vote the vote committed to commitVote, either for or against
      */
-    function revealVote(uint _pollId, uint _salt, bool _vote) public pollExists(_pollId){
+    function revealVote(uint _pollId, uint _salt, bool _vote) public override pollExists(_pollId){
         Poll storage poll = polls[_pollId];
         require(poll.commitEndDate < block.timestamp && block.timestamp < poll.revealEndDate, "Reveal stage not active");
         require(commits[_pollId][msg.sender], "No vote committed");
@@ -188,7 +164,7 @@ contract PollRegistry is Reward, ReentrancyGuard {
      * @dev Close poll and calculate reward pool
      * @param _pollId id of poll to resolve
      */
-    function resolvePoll(uint _pollId) public {
+    function resolvePoll(uint _pollId) public override {
         Poll storage poll = polls[_pollId];
         require(block.timestamp > poll.revealEndDate, "Poll has not ended");
         require(!poll.resolved, "Poll has already been resolved");
@@ -206,7 +182,7 @@ contract PollRegistry is Reward, ReentrancyGuard {
      * @dev Withdraw user balance once poll has completed
      * @param _pollId id of poll to withdraw balance from
      */
-    function withdrawBalance(uint _pollId) public nonReentrant {
+    function withdrawBalance(uint _pollId) public override nonReentrant {
         Poll storage poll = polls[_pollId];
 
         require(poll.resolved == true, "Poll has not ended");
@@ -247,17 +223,16 @@ contract PollRegistry is Reward, ReentrancyGuard {
      * HELPER FUNCTIONS
      *
      */
-    function hasPassed(uint _pollId) public view pollExists(_pollId) pollEnded(_pollId) returns (bool) {
+    function hasPassed(uint _pollId) public view pollExists(_pollId) pollEnded(_pollId) override returns (bool) {
         Poll memory poll = polls[_pollId];
         return (100 * poll.votesFor) > (poll.voteQuorum * (poll.votesFor + poll.votesAgainst));
+    }
+
+    function hasResolved(uint _pollId) external view override returns (bool) {
+        return polls[_pollId].resolved;
     }
 
     function getPoll(uint _pollId) external view returns (Poll memory) {
         return polls[_pollId];
     }
-
-    function hasResolved(uint _pollId) external view returns (bool) {
-        return polls[_pollId].resolved;
-    }
-
 }

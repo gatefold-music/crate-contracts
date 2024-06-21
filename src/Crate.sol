@@ -2,15 +2,22 @@
 pragma solidity ^0.8.21;
 
 import {PollRegistry} from "./PollRegistry.sol";
-import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
-import "./VerifySignature.sol";
-import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {Oracle} from "./VerifySignature.sol";
+import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/utils/PausableUpgradeable.sol";
-import "./interfaces/IAffinityManager.sol";
+import {IAffinityManager} from "./interfaces/IAffinityManager.sol";
+import {ICrate} from "./interfaces/ICrate.sol";
 
 
 
-contract Crate is OwnableUpgradeable, Oracle, IAffinityManager, PausableUpgradeable { 
+contract Crate is 
+    OwnableUpgradeable, 
+    Oracle, 
+    IAffinityManager, 
+    PausableUpgradeable,
+    ICrate
+{ 
     string public crateInfo;
     uint public minDeposit;
     uint public appDuration;
@@ -58,22 +65,6 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager, PausableUpgradea
      */
     mapping(bytes32 => Record) private records; // This mapping holds the listings and applications for this list
     mapping(bytes32 => Position) public positions; // Mapping to maintain sort order
-    mapping(bytes32 => mapping(address => bool)) public privateViewers; // private record hash => viewer address => viewer can view
-
-    /*
-     *
-     * EVENTS
-     *
-     */ 
-    event Application(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint applicationExpiry, bool isPrivate);
-    event RecordAdded(bytes32 indexed recordHash, uint deposit, string data, address indexed applicant, uint listExpiry, bool isPrivate);
-    event Challenge(bytes32 indexed recordHash, uint challengeId, address indexed challenger);
-    event ChallengeFailed(bytes32 indexed recordHash, uint indexed challengeId, uint rewardPool, address winner);
-    event ChallengeSucceeded(bytes32 indexed recordHash);
-    event ApplicationRemoved(bytes32 indexed recordHash);
-    event RecordRemoved(bytes32 indexed recordHash);
-    event SortOrderUpdated(bytes32 indexed recordHash, bytes32 prevRecordHash);
-    event SortOrderRemoved(bytes32 indexed recordHash);
 
     function initialize(string memory _crateInfo, address _token, address _voting, uint _minDeposit, address _owner) public initializer {
         require(_token != address(0), "Token address should not be zero address");
@@ -159,6 +150,7 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager, PausableUpgradea
      */
     function propose(bytes32 _recordHash, uint _amount, string memory _data, bytes memory _signature, bool isPrivate) 
         public 
+        override
         crateIsNotSealed()
         whenNotPaused()
         verifyOracle(_recordHash, _data, _signature) 
@@ -199,6 +191,7 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager, PausableUpgradea
      */
     function challenge(bytes32 _recordHash, uint _amount, address _payoutAddress) 
         external
+        override
         crateIsNotSealed()
         whenNotPaused()
         doesExist(_recordHash)
@@ -229,7 +222,7 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager, PausableUpgradea
      * @notice If list length has been reached, winning address can still call this but adding entry to list will be skipped
      * @param _recordHash keccak256 hash of record identifier
      */
-    function resolveChallenge(bytes32 _recordHash) public doesExist(_recordHash) {
+    function resolveChallenge(bytes32 _recordHash) public override doesExist(_recordHash) {
         Record storage record = records[_recordHash];
         require(record.challengeId > 0 && record.resolved == false, "Has no open challenge");
         require(PollRegistry(pollRegistryAddress).hasResolved(record.challengeId) == true, "Poll has not ended");
@@ -270,7 +263,7 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager, PausableUpgradea
      * @notice record applicationExpiry should not be zero
      * @param _recordHash keccak256 hash of record identifier
      */
-    function resolveApplication(bytes32 _recordHash) public doesExist(_recordHash) {
+    function resolveApplication(bytes32 _recordHash) public override doesExist(_recordHash) {
         Record storage record = records[_recordHash];
         require(!record.listed, "Record already allow listed");
         require(record.challengeId == 0, "Challenge will resolve listing");
@@ -287,7 +280,7 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager, PausableUpgradea
      * @dev Remove an owned or expired record
      * @param _recordHash keccak256 hash of record identifier
      */
-    function removeRecord(bytes32 _recordHash) public doesExist(_recordHash) {
+    function removeRecord(bytes32 _recordHash) public override doesExist(_recordHash) {
         Record memory record = records[_recordHash];
         require(record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true), "Record is in challenged state");
         require(record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry ), "Record can only be removed by owner, challenge or if expired");
