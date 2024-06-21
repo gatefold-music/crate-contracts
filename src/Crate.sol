@@ -5,11 +5,12 @@ import {PollRegistry} from "./PollRegistry.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "./VerifySignature.sol";
 import "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/utils/PausableUpgradeable.sol";
 import "./interfaces/IAffinityManager.sol";
 
 
 
-contract Crate is OwnableUpgradeable, Oracle, IAffinityManager { 
+contract Crate is OwnableUpgradeable, Oracle, IAffinityManager, PausableUpgradeable { 
     string public crateInfo;
     uint public minDeposit;
     uint public appDuration;
@@ -85,6 +86,7 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager {
         listLength = 0;
         maxListLength = type(uint256).max;
         __Ownable_init(_owner);
+        __Pausable_init();
     }
 
     /*
@@ -157,8 +159,9 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager {
      */
     function propose(bytes32 _recordHash, uint _amount, string memory _data, bytes memory _signature, bool isPrivate) 
         public 
-        verifyOracle(_recordHash, _data, _signature) 
         crateIsNotSealed()
+        whenNotPaused()
+        verifyOracle(_recordHash, _data, _signature) 
         verifyMinDeposit(_amount)
         doesNotExist(_recordHash)
         sufficientBalance(_amount, msg.sender) 
@@ -172,7 +175,6 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager {
 
     function revealProposal(bytes32 _secretHash, bytes32 _recordHash, string memory _data, bytes memory _signature) 
         public
-        crateIsNotSealed()
         doesExist(_secretHash)
         doesNotExist(_recordHash)
         isRecordOwner(_secretHash, msg.sender)
@@ -198,6 +200,7 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager {
     function challenge(bytes32 _recordHash, uint _amount, address _payoutAddress) 
         external
         crateIsNotSealed()
+        whenNotPaused()
         doesExist(_recordHash)
         returns (uint challengeID) {
 
@@ -223,7 +226,7 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager {
 
     /*
      * @dev Resolve challenge once voting has completed
-     * @notice If list length has been reached, winning address can still call this but adding entry to list with be skipped
+     * @notice If list length has been reached, winning address can still call this but adding entry to list will be skipped
      * @param _recordHash keccak256 hash of record identifier
      */
     function resolveChallenge(bytes32 _recordHash) public doesExist(_recordHash) {
@@ -397,6 +400,14 @@ contract Crate is OwnableUpgradeable, Oracle, IAffinityManager {
 
     function setAffinity(address _affinityAddress) public onlyOwner {
          affinityAddress = _affinityAddress;
+    }
+
+    function pauseContract() external onlyOwner {
+        _pause();
+    }
+
+    function unpauseContract() external onlyOwner {
+        _unpause();
     }
 
 
