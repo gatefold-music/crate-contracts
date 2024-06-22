@@ -11,7 +11,7 @@ contract CrateRegistry {
     
     mapping(uint => address) public crates; // This mapping holds all deployed crates
 
-    event NewCrate(address crateAddress, address owner, uint crateId);
+    event CrateCreated(address indexed crateAddress, address indexed owner, uint crateId);
 
     constructor(address _crateImplementation){
         crateImplementation = _crateImplementation;
@@ -25,6 +25,6 @@ contract CrateRegistry {
         uint newCrateId = ++crateId;
 
         crates[newCrateId] = address(newCrateAddress);
-        emit NewCrate(newCrateAddress, _owner, newCrateId);
+        emit CrateCreated(newCrateAddress, _owner, newCrateId);
     }
 }
