@@ -1,13 +1,29 @@
+## Deploy
+
+- Must have Foundry installed
+
+- add values to the env file
+
+- source .env
+
+- deploy crate implementation
+
+  - forge create --rpc-url $BASE_SEPOLIA_RPC_URL --private-key $DEPLOYER_PRIVATE_KEY --etherscan-api-key $BASESCAN_KEY --verify --chain-id $CHAIN_ID src/crate/Crate.sol:Crate
+  - grab newly deployed contract address from console output
+
+- deploy crate registry
+  - forge create --rpc-url $BASE_SEPOLIA_RPC_URL --constructor-args <CRATE IMPL ADDRESS> --private-key $DEPLOYER_PRIVATE_KEY --etherscan-api-key $BASESCAN_KEY --verify --chain-id $CHAIN_ID src/crate/CrateRegistry.sol:CrateRegistry
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
 Foundry consists of:
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
+- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
+- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
+- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
 ## Documentation
 
