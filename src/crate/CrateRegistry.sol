@@ -3,7 +3,6 @@ pragma solidity ^0.8.21;
 
 import {Clones} from "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import {Crate} from "./Crate.sol";
-import {PollRegistry} from "../poll/PollRegistry.sol";
 
 contract CrateRegistry {
     address public crateImplementation;
