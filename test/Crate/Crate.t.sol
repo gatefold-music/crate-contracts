@@ -233,7 +233,7 @@ contract CrateTest is Test {
         vm.prank(challengerAddress);
         crate.challenge(hashedValue, 10, challengerAddress);
 
-        vm.expectRevert("Challenge will resolve listing");
+        vm.expectRevert("Record is in challenged state");
         vm.prank(spenderAddress);
         crate.resolveApplication(hashedValue);
     }
