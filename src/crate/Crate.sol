@@ -7,14 +7,16 @@ import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {OwnableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import {PausableUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/utils/PausableUpgradeable.sol";
 import {PollRegistry} from "../poll/PollRegistry.sol";
+import {ReentrancyGuardUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
 import {Oracle} from "../utils/VerifySignature.sol";
 
 contract Crate is 
-    OwnableUpgradeable, 
-    Oracle, 
     IAffinityManager, 
+    ICrate,
+    Oracle, 
+    OwnableUpgradeable, 
     PausableUpgradeable,
-    ICrate
+    ReentrancyGuardUpgradeable
 { 
     string public crateInfo;
     uint public minDeposit;
@@ -49,6 +51,7 @@ contract Crate is
         address tokenAddress;   // token address for this record 
         address oracleAddress;   // oracle address for private listing. zero address if public
         bool isPrivate;
+        bool isWithdrawn;
     }
 
     struct Position {
@@ -76,6 +79,7 @@ contract Crate is
         maxListLength = type(uint256).max;
         __Ownable_init(_owner);
         __Pausable_init();
+        __ReentrancyGuard_init();
     }
 
     /*
@@ -94,6 +98,11 @@ contract Crate is
 
     modifier crateIsNotSealed() {
         require(!isSealed, "Crate has been sealed close");
+        _;
+    }
+
+    modifier crateIsSealed() {
+        require(isSealed, "Crate must be sealed closed");
         _;
     }
 
@@ -149,8 +158,8 @@ contract Crate is
     function propose(bytes32 _recordHash, uint _amount, string memory _data, bytes memory _signature, bool isPrivate) 
         public 
         override
-        crateIsNotSealed()
-        whenNotPaused()
+        crateIsNotSealed
+        whenNotPaused
         verifyOracle(_recordHash, _data, _signature) 
         verifyMinDeposit(_amount)
         doesNotExist(_recordHash)
@@ -190,8 +199,8 @@ contract Crate is
     function challenge(bytes32 _recordHash, uint _amount, address _payoutAddress) 
         external
         override
-        crateIsNotSealed()
-        whenNotPaused()
+        crateIsNotSealed
+        whenNotPaused
         doesExist(_recordHash)
         returns (uint challengeID) {
 
@@ -225,32 +234,27 @@ contract Crate is
         require(record.challengeId > 0 && record.resolved == false, "Has no open challenge");
         require(PollRegistry(pollRegistryAddress).hasResolved(record.challengeId) == true, "Poll has not ended");
 
-        bool challengeFailed = PollRegistry(pollRegistryAddress).hasPassed(record.challengeId);
-        address winningOwner = challengeFailed ? record.owner : record.challenger;
-        bool shouldBeAdded = challengeFailed && !record.listed;
-        bool listHasSpace = listLength + 1 <= maxListLength;
-        require(!shouldBeAdded || (shouldBeAdded && (listHasSpace || msg.sender == winningOwner)), "Max length reached or not authorized to skip list addition");
- 
-        address winner = challengeFailed ? record.owner : record.challengerPayoutAddress;
-        uint rewards = challengeFailed ? record.challengeDeposit : record.deposit;
-
         record.resolved = true;
+        bool challengeFailed = PollRegistry(pollRegistryAddress).hasPassed(record.challengeId);
 
-        require(IERC20(record.tokenAddress).transfer(winner, rewards), "Token transfer failed");
+        uint256 newDepositAmount = record.challengeDeposit + record.deposit;
 
-        if (challengeFailed) { 
-            emit ChallengeFailed(_recordHash, record.challengeId, rewards, winner);
+        if(challengeFailed) {
+            emit ChallengeFailed(_recordHash, record.challengeId, record.challengeDeposit, record.owner);
+            record.deposit = newDepositAmount;
+            record.challengeDeposit = 0; 
 
-            if (!record.listed && listHasSpace) {
-                uint expiry = listDuration > 0 ? block.timestamp + listDuration : 0;
-                emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, expiry, record.isPrivate);
-                listLength += 1;
+            // if space on list, update application to listed
+            // if skipped, resolveApplication can be called when space has been opened up
+            if(!record.listed && listLength + 1 <= maxListLength) {
+                uint listingExpiry = listDuration > 0 ? block.timestamp + listDuration : 0;
+                record.listingExpiry = listingExpiry;
                 record.listed = true;
-            }
-            if (!record.listed && !listHasSpace) {
-                 _remove(_recordHash);
+                listLength += 1;
+                emit RecordAdded(_recordHash, record.deposit, record.data, record.owner, listingExpiry, record.isPrivate);
             }
         } else { 
+            require(IERC20(record.tokenAddress).transfer(record.challengerPayoutAddress, newDepositAmount), "Token transfer failed");
             emit ChallengeSucceeded(_recordHash);
             _remove(_recordHash);
         }
@@ -261,10 +265,9 @@ contract Crate is
      * @notice record applicationExpiry should not be zero
      * @param _recordHash keccak256 hash of record identifier
      */
-    function resolveApplication(bytes32 _recordHash) public override doesExist(_recordHash) {
+    function resolveApplication(bytes32 _recordHash) public override doesExist(_recordHash) unchallenged(_recordHash) {
         Record storage record = records[_recordHash];
         require(!record.listed, "Record already allow listed");
-        require(record.challengeId == 0, "Challenge will resolve listing");
         require(record.applicationExpiry > 0 && block.timestamp > record.applicationExpiry, "Application duration has not expired");
         require(listLength + 1 <= maxListLength, "Exceeds max length"); 
         
@@ -278,9 +281,14 @@ contract Crate is
      * @dev Remove an owned or expired record
      * @param _recordHash keccak256 hash of record identifier
      */
-    function removeRecord(bytes32 _recordHash) public override doesExist(_recordHash) {
+    function removeRecord(bytes32 _recordHash) public 
+        override 
+        crateIsNotSealed
+        whenNotPaused
+        doesExist(_recordHash)
+        unchallenged(_recordHash) 
+    {
         Record memory record = records[_recordHash];
-        require(record.challengeId == 0 || (record.challengeId > 0 && record.resolved == true), "Record is in challenged state");
         require(record.owner == msg.sender || (record.listingExpiry > 0 && block.timestamp > record.listingExpiry ), "Record can only be removed by owner, challenge or if expired");
         
         require(IERC20(record.tokenAddress).transferFrom(address(this), record.owner, record.deposit), "Tokens failed to transfer.");
@@ -302,6 +310,20 @@ contract Crate is
         positions[_recordHash].next = next;
 
         emit SortOrderUpdated(_recordHash, _prevHash);
+    }
+
+    function withdraw(bytes32 _recordHash) external 
+        crateIsSealed
+        doesExist(_recordHash)
+        isRecordOwner(_recordHash, msg.sender) 
+        unchallenged(_recordHash)
+        nonReentrant
+    {
+        Record storage record = records[_recordHash];
+        require(!record.isWithdrawn, "Deposit has already been withdrawn" );
+
+        record.isWithdrawn = true;
+        require(IERC20(record.tokenAddress).transferFrom(address(this), record.owner, record.deposit), "Tokens failed to transfer.");
     }
 
     /*
