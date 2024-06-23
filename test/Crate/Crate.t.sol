@@ -24,6 +24,10 @@ contract CrateTest is Test {
     event ChallengeSucceeded(bytes32 indexed recordHash);
 
     function setUp() public {
+        bytes memory empty;
+
+        console2.logBytes(empty);
+        console2.log("zone in");
         pollRegistry = new PollRegistry();
 
         vm.prank(ownerAddress);
