@@ -231,6 +231,10 @@ contract PollRegistry is IPollRegistry, Reward, ReentrancyGuard {
         return polls[_pollId].resolved;
     }
 
+    function canResolve(uint _pollId) external view override returns (bool) {
+        return !polls[_pollId].resolved && block.timestamp > polls[_pollId].revealEndDate;
+    }
+
     function getPoll(uint _pollId) external view returns (Poll memory) {
         return polls[_pollId];
     }

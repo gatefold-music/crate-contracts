@@ -22,4 +22,6 @@ abstract contract IPollRegistry is ERC165 {
     function hasPassed(uint _pollId) public view virtual returns (bool);
 
     function hasResolved(uint _pollId) external view virtual returns (bool);
+
+    function canResolve(uint _pollId) external view virtual returns (bool);
 }

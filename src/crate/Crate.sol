@@ -232,12 +232,17 @@ contract Crate is
     function resolveChallenge(bytes32 _recordHash) public override doesExist(_recordHash) {
         Record storage record = records[_recordHash];
         require(record.challengeId > 0 && record.resolved == false, "Has no open challenge");
-        require(PollRegistry(pollRegistryAddress).hasResolved(record.challengeId) == true, "Poll has not ended");
+        PollRegistry pr = PollRegistry(pollRegistryAddress);
+        require(pr.hasResolved(record.challengeId) || pr.canResolve(record.challengeId), "Poll is still active");
+
+        if (!pr.hasResolved(record.challengeId)) {
+            pr.resolvePoll(record.challengeId);
+        }
+
+        bool challengeFailed = pr.hasPassed(record.challengeId);
+        uint256 newDepositAmount = record.challengeDeposit + record.deposit;
 
         record.resolved = true;
-        bool challengeFailed = PollRegistry(pollRegistryAddress).hasPassed(record.challengeId);
-
-        uint256 newDepositAmount = record.challengeDeposit + record.deposit;
 
         if(challengeFailed) {
             emit ChallengeFailed(_recordHash, record.challengeId, record.challengeDeposit, record.owner);
