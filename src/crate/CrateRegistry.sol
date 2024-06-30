@@ -17,10 +17,14 @@ contract CrateRegistry {
         crateImplementation = _crateImplementation;
     }
 
-    function deployCrate(string memory _crateInfo, address _token, address _voting, uint _minDeposit, address _owner) public {
+    function deployCrate(string memory _crateInfo, address _token, address _voting, uint _minDeposit, address _owner, address _affinity) public {
         address newCrateAddress = Clones.clone(crateImplementation);
 
-        Crate(newCrateAddress).initialize(_crateInfo, _token, _voting, _minDeposit, _owner);
+        Crate newCrate = Crate(newCrateAddress);
+
+        newCrate.initialize(_crateInfo, _token, _voting, _minDeposit, address(this));
+        newCrate.setAffinity(_affinity);
+        newCrate.transferOwnership(_owner);
 
         uint newCrateId = ++crateId;
 
