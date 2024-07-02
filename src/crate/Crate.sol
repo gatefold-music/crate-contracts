@@ -12,7 +12,7 @@ import {Oracle} from "../utils/VerifySignature.sol";
 
 /**
  * @title Crate
- * @author Richard Ryan (Derelict.eth)
+ * @author Richard Ryan (derelict.eth)
  * @dev Curation protocol that lets erc20 holders manage a shared list of anything you want really
  */
 contract Crate is 
