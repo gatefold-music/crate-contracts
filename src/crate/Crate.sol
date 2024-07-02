@@ -10,6 +10,11 @@ import {PollRegistry} from "../poll/PollRegistry.sol";
 import {ReentrancyGuardUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/utils/ReentrancyGuardUpgradeable.sol";
 import {Oracle} from "../utils/VerifySignature.sol";
 
+/**
+ * @title Crate
+ * @author Richard Ryan (Derelict.eth)
+ * @dev Curation protocol that lets erc20 holders manage a shared list of anything you want really
+ */
 contract Crate is 
     IAffinityManager, 
     ICrate,
