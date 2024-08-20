@@ -19,6 +19,10 @@ There’s other customizations that can be made in order to fit the needs of any
     - Listings to determine how long an item will stay on the list
     - Voting to determine the window of time users have to cast their votes
     - Vote Reveals to determine the window of time users have to reveal their casted votes
+ 
+- Quorum and Reward structure
+    - The vote quorum is defined on the voting contract used by your crate. We have a deployed voting contract that all new crates could leverage where the vote quorum is set to 50.
+    - Reward distribution can be customized to define the perfect payout structure for winning voters
 	
 - List length
     - Limit the number of records that can be added to the crate 
@@ -75,11 +79,17 @@ Crate Protocol has some added functionality to help manage the perfect list. A l
 ## Deployed crate factory contract 
 #### You can create your own onchain list by hitting our deployed factory contracts. See below for deployed factory addresses or deploy your own factory. 
 
-Deployment Addresses: 
+Deployed Addresses: 
 
-Base Sepolia - 0xAbaD0Cb44c4185fE02007Ee9F10E2C46748AE3fb
+Base Sepolia
 
-Base Mainnet - soon..
+Crate Factory - 0xAbaD0Cb44c4185fE02007Ee9F10E2C46748AE3fb
+
+Poll Registry - 0x96faD698e93fA5A06Bd4c5d60A4f4df3930A9d62
+
+Base Mainnet 
+
+Soon....
 
 ## Deploy
 
