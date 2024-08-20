@@ -1,6 +1,14 @@
-## Deploy crate factory contract 
-### You can create your own on chain list by hitting the factory contract. deployment addresses listed below
+## Protocol fees
+#### Crate Protocol is proudly a [Hyperstructure](https://zine.zora.co/issue/intergenerational-dynamics/hyperstructures-redux). This means that creating and managing crates will be free and open foreverrr.
+
+## Deployed crate factory contract 
+#### You can create your own onchain list by hitting our deployed factory contracts. See below for deployed factory addresses or deploy your own factory. 
+
+Deployment Addresses: 
+
 Base Sepolia - 0xAbaD0Cb44c4185fE02007Ee9F10E2C46748AE3fb
+
+Base Mainnet - soon..
 
 ## Deploy
 
