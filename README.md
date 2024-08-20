@@ -1,3 +1,7 @@
+## Deploy crate factory contract 
+### You can create your own on chain list by hitting the factory contract. deployment addresses listed below
+Base Sepolia - 0xAbaD0Cb44c4185fE02007Ee9F10E2C46748AE3fb
+
 ## Deploy
 
 - Must have Foundry installed
