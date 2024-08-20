@@ -1,3 +1,74 @@
+## Summary 
+#### TL;DR - A customizable [Token Curated Registry(TCR)](https://education.district0x.io/general-topics/understanding-ethereum/token-curated-registry/) to manage shared lists onchain
+
+#### Description
+Capture the collective mind set of a community with a curated list powered by Crate Protocol. Crate protocol is a collection of smart contracts that can be leveraged to manage onchain lists of anything. 
+The list is token gated so contributions can only come from token holders. This enables an inherit tier system for a given user’s influence over the list. 
+For example: if the crate is set up to stake 10 $DEGEN in order to add a record, a person with 50 $DEGEN will have significantly less influence on the list than a person with 1000 $DEGEN. 
+This works well in situations where a community would like to limit the contribution amount for a user before issuing them larger influence on the list. 
+
+There’s an opt in voting mechanism that can be utilized to resolve disputes and can also be used to gain reputation by casting your vote and earning community tokens for voting correctly. 
+
+There’s other customizations that can be made in order to fit the needs of any list maker: 
+- Sortability 
+    - Lists are unordered by default but community has ability to order list item (its possible to only have part of the list ordered)
+    - Sortability can be toggled on or off by crate admin. 
+
+- App / List / Vote / Reveal durations are completely customizable. Admins can set the durations for:
+    - Applications so that records aren’t immediately added to a list
+    - Listings to determine how long an item will stay on the list
+    - Voting to determine the window of time users have to cast their votes
+    - Vote Reveals to determine the window of time users have to reveal their casted votes
+	
+- List length
+    - Limit the number of records that can be added to the crate 
+- Pausable
+    - Temporarily pause record additions or removals for a crate
+- Sealable
+    - Permanently lock the list as is.  Locks the current records and any defined sort order foreverrrr
+- Private listing
+    - Crates are entirely managed on chain but with Crate Protocol there is a way to add private records. This involves an off chain element to encrypt the data going on chain but the protocol does offer functionality to “reveal” a private listing.
+    - In the crate world list metadata is never private but individual list items can be. This means it is possible to have some public and some private records in one crate.
+- Affinity
+    - This is a customizable extension that can be defined to customize how “likes” are managed onchain. This would enable any clients surfacing your list can track how popular something is in the same way. 
+    - Example: You can customize a crate’s affinity module to mint a dedicated Zora token when “liked”
+    - This does not have to be defined. 
+
+Why onchain?
+- Multiple clients
+    - Stop migrating lists and start sharing them. Clients can tap into any on chain list and build their own ideal ui on top of it. Changes will be surfaced everywhere 
+- Reputation tracing 
+    - Track a users reputation by being able to trace which items they have added to a list, which of those items have stayed on the list and if their voting record aligns with the community’s. 
+- Shared affinity management
+    - One way to track a crate’s success regardless of what client is surfacing / facilitating it
+- Community ID
+    - ERC20s give users the power to trustlessly identify themselves as community members. Crate protocol taps into this to power the entire protocol. 
+- List integrity 
+    - The protocol inherently flushes out bad actors or contributors not in line with the community mindset. This means over time the contributors constantly voting correctly and without challenges to their own added records will gain more influence over the list. 
+- Access control
+    - Decide how you would like to distribute contributor tokens as this is the gate to be a curator on a crate. 
+
+Crate Protocol has some added functionality to help manage the perfect list. A lot of the features are opt in for complete customization. Here are a few key points: 
+
+- Users stake ERC20 tokens to add a record(list item) to a crate(list). 
+- User’s can reclaim their tokens by removing the added record from the list. 
+- Contributors can challenge a list to trigger a community vote
+- List items must be unique and can represent anything as its is just storing metadata about the record onchain. 
+- Inherently tiered contribution levels
+- Scalable to manage lists for one user or many. 
+- Flexible. Complete customizable to fit any list’s needs
+- Portable. Anyone can build their own client to surface crate list items
+- Transparency. Reputations for any contributor can be tracked via onchain crate activity.  
+- Attach a custom onchain “like” mechanism using an Affinity module
+- Public or private records can be added to any crate
+
+
+#### Some example use cases: 
+- FWB can create a community crate to crowd source an artist wishlist for next years FWB fest. 
+- ETH Denver organizers can create a free-to-claim erc20 for promoters to add their event to a shared list of ETH Denver satellite events
+- Labels can create a crate with $USDC as the token, so that artists can apply to drop an NFT under the label’s banner
+- Onchain music NFT playlists (check out [Gatefold.xyz](https://dev.gatefold.xyz))
+
 ## Protocol fees
 #### Crate Protocol is proudly a [Hyperstructure](https://zine.zora.co/issue/intergenerational-dynamics/hyperstructures-redux). This means that creating and managing crates will be free and open foreverrr.
 
