@@ -72,10 +72,10 @@ Crate Protocol has some added functionality to help manage the perfect list. A l
 
 
 #### Some example use cases: 
-- FWB can create a community crate to crowd source an artist wishlist for next years FWB fest. 
+- Friends with Benefits can create a crate for the community to stake $FWB and build an artist wishlist for next years FWB fest. 
 - ETH Denver organizers can create a free-to-claim erc20 for promoters to add their event to a shared list of ETH Denver satellite events
 - Labels can create a crate with $USDC as the token, so that artists can apply to drop an NFT under the label’s banner
-- Onchain music NFT playlists (check out [Gatefold.xyz](https://dev.gatefold.xyz))
+- Onchain music NFT playlists (check out [gatefold.xyz](https://dev.gatefold.xyz))
 
 ## Protocol fees
 #### Crate Protocol is proudly a [Hyperstructure](https://zine.zora.co/issue/intergenerational-dynamics/hyperstructures-redux). This means that creating and managing crates will be free and open foreverrr.
