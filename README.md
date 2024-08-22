@@ -1,5 +1,7 @@
 # Crate Protocol
+A collection of smart contracts to bring curation onchain 
 
+:skull_and_crossbones: U N A U D I T E D :skull_and_crossbones:
 
 
 ## Summary 
